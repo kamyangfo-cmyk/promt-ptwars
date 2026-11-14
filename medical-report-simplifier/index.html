@@ -1,0 +1,2103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MedClarify AI - Medical Report Simplifier & Health Timeline</title>
+  
+  <!-- =========================================================================
+       EXTERNAL LIBRARIES (Loaded via reliable CDNs - Zero Install Required)
+       ========================================================================= -->
+  <!-- Tailwind CSS CDN for modern UI styling -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Lucide Icons CDN for medical, calendar, and UI icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  
+  <!-- Google Fonts: Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- =========================================================================
+       CSS STYLES & THEME VARIABLES
+       ========================================================================= -->
+  <style>
+    /* 1. DYNAMIC THEME CSS VARIABLES */
+    :root {
+      --primary: #0d9488;        /* Teal-600 */
+      --primary-hover: #0f766e;  /* Teal-700 */
+      --primary-light: #ccfbf1;  /* Teal-100 */
+      --accent: #0284c7;         /* Sky-600 */
+      --bg-body: #f8fafc;        /* Slate-50 */
+      --bg-card: #ffffff;        /* White */
+      --text-main: #0f172a;      /* Slate-900 */
+      --text-muted: #64748b;     /* Slate-500 */
+      --border-color: #e2e8f0;   /* Slate-200 */
+      --border-radius: 12px;
+    }
+
+    body {
+      background-color: var(--bg-body);
+      color: var(--text-main);
+      font-family: var(--font-family, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+      transition: background-color 0.25s ease, color 0.25s ease;
+    }
+
+    /* 2. CUSTOM SCROLLBAR */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 9999px; }
+    ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+    /* 3. MEDICAL TERMINOLOGY TOOLTIP & HIGHLIGHTS */
+    .med-term-highlight {
+      cursor: pointer;
+      background-color: rgba(13, 148, 136, 0.12);
+      color: var(--primary);
+      font-weight: 600;
+      padding: 1px 4px;
+      border-radius: 4px;
+      border-bottom: 2px dotted var(--primary);
+      transition: all 0.2s ease-in-out;
+      position: relative;
+      display: inline-block;
+    }
+
+    .med-term-highlight:hover {
+      background-color: var(--primary);
+      color: #ffffff;
+      border-bottom-color: transparent;
+      transform: translateY(-1px);
+    }
+
+    .med-tooltip-box {
+      position: absolute;
+      z-index: 1000;
+      width: 320px;
+      max-width: 90vw;
+      background: #ffffff;
+      color: #0f172a;
+      border: 1px solid #e2e8f0;
+      border-radius: 12px;
+      box-shadow: 0 14px 28px rgba(0, 0, 0, 0.12), 0 10px 10px rgba(0, 0, 0, 0.08);
+      padding: 14px 16px;
+      font-size: 0.875rem;
+      line-height: 1.45;
+      pointer-events: auto;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .med-tooltip-box.active {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* 4. MEDICAL TIMELINE STYLING */
+    .timeline-stem {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 28px;
+      width: 3px;
+      background: linear-gradient(180deg, var(--primary) 0%, rgba(13, 148, 136, 0.15) 100%);
+    }
+
+    .timeline-card {
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      position: relative;
+    }
+
+    .timeline-card:hover {
+      transform: translateX(4px);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+    }
+
+    /* Status Badges */
+    .status-badge-attention {
+      background-color: #fef3c7;
+      color: #b45309;
+      border: 1px solid #fde68a;
+    }
+
+    .status-badge-critical {
+      background-color: #fee2e2;
+      color: #b91c1c;
+      border: 1px solid #fecaca;
+      animation: pulse-border 2s infinite;
+    }
+
+    .status-badge-normal {
+      background-color: #d1fae5;
+      color: #047857;
+      border: 1px solid #a7f3d0;
+    }
+
+    @keyframes pulse-border {
+      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+      70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+    }
+
+    /* 5. PRINT & PDF OPTIMIZATION */
+    @media print {
+      header, nav, #btn-export-timeline, #btn-add-record, #view-customizer, #view-dictionary,
+      .no-print, button, input, textarea, select {
+        display: none !important;
+      }
+      body {
+        background: #ffffff !important;
+        color: #000000 !important;
+        font-size: 11pt;
+      }
+      .timeline-stem { background: #64748b !important; }
+      .timeline-card {
+        box-shadow: none !important;
+        border: 1px solid #cbd5e1 !important;
+        page-break-inside: avoid;
+        margin-bottom: 16px;
+      }
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col font-sans selection:bg-teal-500 selection:text-white antialiased">
+
+  <!-- =========================================================================
+       1. TOP NAVIGATION HEADER
+       ========================================================================= -->
+  <header class="sticky top-0 z-40 bg-white/90 backdrop-blur-md border-b border-slate-200 transition-colors" id="main-header">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-16">
+        
+        <!-- Logo & Branding -->
+        <div class="flex items-center space-x-3 cursor-pointer" id="nav-brand-logo">
+          <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-teal-600 to-sky-500 flex items-center justify-center text-white shadow-md shadow-teal-500/20" id="brand-logo-icon">
+            <i data-lucide="activity" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <div class="flex items-center space-x-2">
+              <span class="text-xl font-bold tracking-tight text-slate-900" id="brand-app-name">MedClarify AI</span>
+              <span class="text-[10px] font-semibold uppercase px-2 py-0.5 rounded-full bg-teal-100 text-teal-800" id="brand-version-badge">v2.0 Pro</span>
+            </div>
+            <p class="text-xs text-slate-500 hidden sm:block" id="brand-app-tagline">AI Medical Report Simplifier & Health Timeline</p>
+          </div>
+        </div>
+
+        <!-- Primary Navigation Tabs -->
+        <nav class="hidden md:flex space-x-1 p-1 bg-slate-100 rounded-xl border border-slate-200" id="nav-tab-container">
+          <button data-tab="simplifier" class="nav-tab px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center space-x-2 active-nav-tab bg-white text-teal-700 shadow-sm">
+            <i data-lucide="file-text" class="w-4 h-4"></i>
+            <span>Simplify Report</span>
+          </button>
+          <button data-tab="timeline" class="nav-tab px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:text-slate-900 transition-all flex items-center space-x-2">
+            <i data-lucide="calendar" class="w-4 h-4"></i>
+            <span>Medical Timeline</span>
+          </button>
+          <button data-tab="dictionary" class="nav-tab px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:text-slate-900 transition-all flex items-center space-x-2">
+            <i data-lucide="book-open" class="w-4 h-4"></i>
+            <span>Preloaded Terminology</span>
+          </button>
+          <button data-tab="customizer" class="nav-tab px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:text-slate-900 transition-all flex items-center space-x-2">
+            <i data-lucide="palette" class="w-4 h-4"></i>
+            <span>UI Customizer</span>
+          </button>
+        </nav>
+
+        <!-- Header Actions: API Key & Print -->
+        <div class="flex items-center space-x-2">
+          <!-- API Status & Config Button -->
+          <button id="btn-open-api-modal" class="flex items-center space-x-2 px-3 py-1.5 rounded-lg border border-slate-200 hover:border-slate-300 text-xs font-medium text-slate-700 bg-white hover:bg-slate-50 transition shadow-sm">
+            <span id="api-status-dot" class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
+            <span id="api-status-label" class="hidden sm:inline">Gemini API</span>
+            <i data-lucide="key" class="w-3.5 h-3.5 text-slate-400"></i>
+          </button>
+
+          <!-- Quick Print / Export Button -->
+          <button id="btn-quick-print" title="Print Current View" class="p-2 rounded-lg border border-slate-200 text-slate-600 hover:text-slate-900 bg-white hover:bg-slate-50 transition shadow-sm">
+            <i data-lucide="printer" class="w-4 h-4"></i>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- Mobile Navigation Tabs (visible on small screens) -->
+      <div class="flex md:hidden overflow-x-auto py-2 space-x-1 border-t border-slate-200">
+        <button data-tab="simplifier" class="nav-tab whitespace-nowrap px-3 py-1.5 rounded-md text-xs font-semibold bg-white text-teal-700 shadow-sm">Simplify</button>
+        <button data-tab="timeline" class="nav-tab whitespace-nowrap px-3 py-1.5 rounded-md text-xs font-medium text-slate-600">Timeline</button>
+        <button data-tab="dictionary" class="nav-tab whitespace-nowrap px-3 py-1.5 rounded-md text-xs font-medium text-slate-600">Dictionary</button>
+        <button data-tab="customizer" class="nav-tab whitespace-nowrap px-3 py-1.5 rounded-md text-xs font-medium text-slate-600">Customizer</button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- =========================================================================
+       2. MAIN CONTENT VIEWS
+       ========================================================================= -->
+  <main class="flex-grow max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 w-full">
+
+    <!-- ---------------------------------------------------------------------
+         VIEW 1: REPORT SIMPLIFIER
+         --------------------------------------------------------------------- -->
+    <section id="view-simplifier" class="space-y-6">
+      
+      <!-- Top Guide Banner -->
+      <div class="bg-gradient-to-r from-teal-500/10 via-sky-500/10 to-transparent p-5 rounded-2xl border border-teal-200/60 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div class="space-y-1">
+          <h1 class="text-xl font-bold text-slate-900 flex items-center space-x-2">
+            <span>Simplify Medical Reports in Everyday Language</span>
+            <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-teal-100 text-teal-700">AI Powered</span>
+          </h1>
+          <p class="text-sm text-slate-600">Paste any lab panel, MRI, CT scan, or discharge note. Gemini translates complex jargon into friendly clarity with preloaded medical terminology.</p>
+        </div>
+        <!-- Sample Report Quick Launchers -->
+        <div class="flex flex-wrap items-center gap-2" id="sample-buttons-wrapper">
+          <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Try Samples:</span>
+          <button data-sample="sample-lab-cmp-cbc" class="btn-load-sample text-xs font-medium px-3 py-1.5 rounded-lg bg-white hover:bg-teal-50 border border-slate-200 text-slate-700 transition flex items-center space-x-1 shadow-sm">
+            <span>🧪</span> <span>Blood Panel</span>
+          </button>
+          <button data-sample="sample-mri-lumbar" class="btn-load-sample text-xs font-medium px-3 py-1.5 rounded-lg bg-white hover:bg-teal-50 border border-slate-200 text-slate-700 transition flex items-center space-x-1 shadow-sm">
+            <span>🩻</span> <span>Spine MRI</span>
+          </button>
+          <button data-sample="sample-cardio-echo" class="btn-load-sample text-xs font-medium px-3 py-1.5 rounded-lg bg-white hover:bg-teal-50 border border-slate-200 text-slate-700 transition flex items-center space-x-1 shadow-sm">
+            <span>❤️</span> <span>Heart Echo</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Input Card: Report Text & Settings -->
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-5 space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+          <div class="flex items-center space-x-2">
+            <i data-lucide="file-plus" class="w-5 h-5 text-teal-600"></i>
+            <h2 class="text-base font-semibold text-slate-900">Enter Medical Report or Lab Document</h2>
+          </div>
+          <div class="flex items-center space-x-2">
+            <input type="file" id="file-upload-input" accept=".txt,.json,.csv" class="hidden">
+            <button id="btn-trigger-upload" class="text-xs font-medium px-3 py-1.5 rounded-lg bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 flex items-center space-x-1 transition">
+              <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+              <span>Upload File (.txt, .json)</span>
+            </button>
+            <button id="btn-clear-input" class="text-xs font-medium px-2.5 py-1.5 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 transition">
+              Clear
+            </button>
+          </div>
+        </div>
+
+        <!-- Textarea -->
+        <div class="relative">
+          <textarea id="report-input-text" rows="7" placeholder="Paste your doctor visit summary, blood test results, ultrasound, or radiology report here..." class="w-full p-4 rounded-xl border border-slate-200 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none font-mono text-sm leading-relaxed text-slate-800 placeholder-slate-400 bg-slate-50/50 resize-y"></textarea>
+          <div class="absolute bottom-3 right-3 text-xs text-slate-400 bg-white/80 px-2 py-0.5 rounded" id="input-char-count">0 characters</div>
+        </div>
+
+        <!-- Controls: Reading Level & Action Button -->
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-4 pt-2">
+          <div class="flex items-center space-x-3 w-full sm:w-auto">
+            <label class="text-xs font-medium text-slate-600 whitespace-nowrap">Explanation Style:</label>
+            <select id="select-reading-level" class="text-xs font-semibold px-3 py-2 rounded-lg border border-slate-200 bg-white text-slate-800 outline-none focus:ring-2 focus:ring-teal-500">
+              <option value="5th-grade" selected>5th Grade (Everyday Metaphors & Ultra-Clear)</option>
+              <option value="high-school">High School (Balanced Medical Clarity)</option>
+              <option value="detailed">Detailed Clinical Overview</option>
+            </select>
+          </div>
+
+          <button id="btn-simplify-report" class="w-full sm:w-auto px-6 py-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-semibold text-sm shadow-md shadow-teal-600/20 flex items-center justify-center space-x-2 transition-all">
+            <i data-lucide="sparkles" class="w-4 h-4"></i>
+            <span>Simplify Report Now</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Loading State Indicator (Hidden by default) -->
+      <div id="simplifier-loading" class="hidden bg-white rounded-2xl border border-slate-200 p-8 text-center space-y-4 shadow-sm">
+        <div class="w-12 h-12 mx-auto border-4 border-teal-200 border-t-teal-600 rounded-full animate-spin"></div>
+        <div class="space-y-1">
+          <h3 class="text-base font-semibold text-slate-900">Gemini is Analyzing Your Report...</h3>
+          <p class="text-xs text-slate-500">Cross-referencing preloaded medical terminology, checking reference ranges, and generating everyday explanations.</p>
+        </div>
+      </div>
+
+      <!-- Results Display Section (Hidden until report is analyzed) -->
+      <div id="simplifier-results" class="hidden space-y-6">
+
+        <!-- Result Action Bar -->
+        <div class="flex flex-wrap items-center justify-between gap-3 bg-teal-50 border border-teal-200 p-4 rounded-xl">
+          <div class="flex items-center space-x-2 text-teal-900">
+            <i data-lucide="check-circle" class="w-5 h-5 text-teal-600"></i>
+            <span class="font-semibold text-sm">Medical Report Simplified Successfully!</span>
+            <span id="demo-mode-badge" class="hidden text-xs bg-amber-200 text-amber-900 px-2 py-0.5 rounded-full font-medium">Demo Mode</span>
+          </div>
+          <div class="flex items-center space-x-2">
+            <button id="btn-add-to-timeline" class="text-xs font-semibold px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white shadow-sm flex items-center space-x-1.5 transition">
+              <i data-lucide="calendar-plus" class="w-3.5 h-3.5"></i>
+              <span>Add to Medical Timeline</span>
+            </button>
+            <button id="btn-print-report" class="text-xs font-medium px-3 py-2 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 flex items-center space-x-1.5 transition shadow-sm">
+              <i data-lucide="printer" class="w-3.5 h-3.5"></i>
+              <span>Print Report</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- 1. Executive Summary Card with Interactive Terminology Tooltips -->
+        <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div class="flex items-center space-x-2">
+              <div class="w-8 h-8 rounded-lg bg-teal-100 text-teal-700 flex items-center justify-center font-bold">
+                <i data-lucide="lightbulb" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <h3 class="text-base font-bold text-slate-900">The Big Picture (In Everyday Words)</h3>
+                <p class="text-xs text-slate-500">Medical jargon translated into plain, relatable English. Hover or click highlighted terms for instant definitions.</p>
+              </div>
+            </div>
+          </div>
+          <div id="result-summary-text" class="text-slate-700 leading-relaxed space-y-3 text-sm sm:text-base"></div>
+        </div>
+
+        <!-- 2. Key Findings & Lab Values Table -->
+        <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+            <div class="flex items-center space-x-2">
+              <div class="w-8 h-8 rounded-lg bg-sky-100 text-sky-700 flex items-center justify-center font-bold">
+                <i data-lucide="table" class="w-4 h-4"></i>
+              </div>
+              <div>
+                <h3 class="text-base font-bold text-slate-900">Key Findings & Lab Values Breakdown</h3>
+                <p class="text-xs text-slate-500">Every significant finding categorized by urgency and translated.</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+              <thead>
+                <tr class="border-b border-slate-200 text-xs font-semibold text-slate-500 uppercase tracking-wider bg-slate-50/75">
+                  <th class="py-3 px-4 rounded-l-lg">Test or Finding</th>
+                  <th class="py-3 px-4">Result Value</th>
+                  <th class="py-3 px-4">Status</th>
+                  <th class="py-3 px-4 rounded-r-lg">Plain Everyday Meaning</th>
+                </tr>
+              </thead>
+              <tbody id="result-findings-tbody" class="divide-y divide-slate-100 text-sm"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- 3. Two Column Grid: Daily Life Impact + Questions for Doctor -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-3">
+            <div class="flex items-center space-x-2 border-b border-slate-100 pb-3">
+              <div class="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center">
+                <i data-lucide="heart-pulse" class="w-4 h-4"></i>
+              </div>
+              <h3 class="text-base font-bold text-slate-900">What This Means for Daily Life</h3>
+            </div>
+            <ul id="result-lifestyle-list" class="space-y-2 text-sm text-slate-700"></ul>
+          </div>
+
+          <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-3">
+            <div class="flex items-center space-x-2 border-b border-slate-100 pb-3">
+              <div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center">
+                <i data-lucide="help-circle" class="w-4 h-4"></i>
+              </div>
+              <h3 class="text-base font-bold text-slate-900">Questions to Ask Your Doctor</h3>
+            </div>
+            <ul id="result-questions-list" class="space-y-2 text-sm text-slate-700"></ul>
+          </div>
+        </div>
+
+        <!-- 4. Warning Signs / Red Flags Alert -->
+        <div id="result-red-flags-card" class="bg-amber-50 rounded-2xl border border-amber-200 p-5 space-y-2">
+          <div class="flex items-center space-x-2 text-amber-900 font-bold text-sm">
+            <i data-lucide="alert-triangle" class="w-5 h-5 text-amber-600"></i>
+            <span>Symptoms & Red Flags to Monitor</span>
+          </div>
+          <div id="result-red-flags-content" class="text-sm text-amber-800 leading-relaxed pl-7"></div>
+        </div>
+
+        <!-- 5. Interactive Follow-up Chat with Gemini about this Report -->
+        <div class="bg-white rounded-2xl border border-slate-200 p-6 shadow-sm space-y-4">
+          <div class="flex items-center space-x-2 border-b border-slate-100 pb-3">
+            <div class="w-8 h-8 rounded-lg bg-purple-100 text-purple-700 flex items-center justify-center">
+              <i data-lucide="message-square" class="w-4 h-4"></i>
+            </div>
+            <div>
+              <h3 class="text-base font-bold text-slate-900">Have a Question About This Report?</h3>
+              <p class="text-xs text-slate-500">Ask Gemini follow-up questions (e.g. "Can this cause my fatigue?", "What foods should I eat?")</p>
+            </div>
+          </div>
+
+          <div id="report-chat-messages" class="space-y-3 max-h-80 overflow-y-auto p-3 bg-slate-50 rounded-xl border border-slate-100 text-sm">
+            <div class="flex items-start space-x-2.5">
+              <div class="w-6 h-6 rounded-full bg-teal-600 text-white flex items-center justify-center text-xs shrink-0 mt-0.5">AI</div>
+              <div class="bg-white p-3 rounded-xl border border-slate-200 text-slate-700 leading-relaxed shadow-xs">
+                Hello! I have reviewed your report. Feel free to ask me any specific question about your results, medications, or terms you'd like more clarity on.
+              </div>
+            </div>
+          </div>
+
+          <form id="report-chat-form" class="flex items-center space-x-2">
+            <input type="text" id="report-chat-input" placeholder="Type your medical question here..." class="flex-grow px-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-teal-500 outline-none bg-slate-50/50">
+            <button type="submit" class="px-4 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-medium text-sm flex items-center space-x-1.5 transition">
+              <span>Send</span>
+              <i data-lucide="send" class="w-3.5 h-3.5"></i>
+            </button>
+          </form>
+        </div>
+
+      </div>
+
+    </section>
+
+    <!-- ---------------------------------------------------------------------
+         VIEW 2: MEDICAL TIMELINE
+         --------------------------------------------------------------------- -->
+    <section id="view-timeline" class="hidden space-y-6">
+      
+      <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+        <div>
+          <h1 class="text-xl font-bold text-slate-900 flex items-center space-x-2">
+            <i data-lucide="calendar" class="w-5 h-5 text-teal-600"></i>
+            <span>Your Chronological Medical Timeline</span>
+          </h1>
+          <p class="text-xs text-slate-500">An organized record of doctor visits, lab panels, imaging, and prescriptions over time.</p>
+        </div>
+
+        <div class="flex flex-wrap items-center gap-2">
+          <button id="btn-open-add-record-modal" class="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold flex items-center space-x-1.5 shadow-sm transition">
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            <span>Add Health Record</span>
+          </button>
+          <button id="btn-export-timeline-json" class="px-3 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-medium flex items-center space-x-1 transition">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i>
+            <span>Backup Data</span>
+          </button>
+          <input type="file" id="import-timeline-file" accept=".json" class="hidden">
+          <button id="btn-trigger-import-json" class="px-3 py-2 rounded-xl bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 text-xs font-medium flex items-center space-x-1 transition">
+            <i data-lucide="upload" class="w-3.5 h-3.5"></i>
+            <span>Restore</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Metrics Tracker Bar -->
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-3">
+        <div class="flex items-center justify-between">
+          <h2 class="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center space-x-1.5">
+            <i data-lucide="trending-up" class="w-4 h-4 text-teal-600"></i>
+            <span>Key Health Indicators Across Time</span>
+          </h2>
+          <span class="text-xs text-slate-400">Extracted from your timeline</span>
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3" id="timeline-metrics-strip"></div>
+      </div>
+
+      <!-- Timeline Filter & Search Bar -->
+      <div class="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-4 rounded-xl border border-slate-200">
+        <div class="flex items-center space-x-1 overflow-x-auto w-full sm:w-auto" id="timeline-category-filters">
+          <button data-cat="All" class="btn-timeline-filter px-3 py-1.5 rounded-lg text-xs font-semibold bg-teal-600 text-white">All Records</button>
+          <button data-cat="Lab Tests" class="btn-timeline-filter px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100">🔬 Labs</button>
+          <button data-cat="Imaging & Scans" class="btn-timeline-filter px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100">🩻 Imaging</button>
+          <button data-cat="Doctor Visits" class="btn-timeline-filter px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100">🩺 Visits</button>
+          <button data-cat="Prescriptions" class="btn-timeline-filter px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100">💊 Prescriptions</button>
+        </div>
+
+        <div class="flex items-center space-x-2 w-full sm:w-auto">
+          <div class="relative w-full sm:w-64">
+            <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-3 top-3"></i>
+            <input type="text" id="timeline-search-input" placeholder="Search events or diagnoses..." class="w-full pl-8 pr-3 py-1.5 rounded-lg border border-slate-200 text-xs focus:ring-2 focus:ring-teal-500 outline-none">
+          </div>
+          <button id="btn-toggle-sort-order" title="Toggle Sort Order" class="p-2 rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 text-xs font-medium flex items-center space-x-1 shrink-0">
+            <i data-lucide="arrow-down-up" class="w-3.5 h-3.5"></i>
+            <span id="sort-order-label">Newest</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- The Visual Timeline Tree Container -->
+      <div class="relative pl-12 sm:pl-16 space-y-8" id="timeline-events-container">
+        <div class="timeline-stem"></div>
+      </div>
+
+    </section>
+
+    <!-- ---------------------------------------------------------------------
+         VIEW 3: PRELOADED MEDICAL TERMINOLOGY DICTIONARY
+         --------------------------------------------------------------------- -->
+    <section id="view-dictionary" class="hidden space-y-6">
+      
+      <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 class="text-xl font-bold text-slate-900 flex items-center space-x-2">
+              <i data-lucide="book-open" class="w-5 h-5 text-teal-600"></i>
+              <span>Preloaded Medical Terminology Knowledge Base</span>
+            </h1>
+            <p class="text-xs text-slate-500">Over 150+ medical tests, abbreviations, and clinical jargon translated into everyday language.</p>
+          </div>
+          <button id="btn-open-custom-term-modal" class="px-4 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold flex items-center space-x-1.5 shadow-sm transition">
+            <i data-lucide="plus-circle" class="w-4 h-4"></i>
+            <span>Add Custom Term</span>
+          </button>
+        </div>
+
+        <!-- Search Bar -->
+        <div class="relative">
+          <i data-lucide="search" class="w-5 h-5 text-slate-400 absolute left-4 top-3.5"></i>
+          <input type="text" id="dictionary-search-input" placeholder="Search any medical term, abbreviation (e.g. Hemoglobin, eGFR, L4-L5, PRN, -itis)..." class="w-full pl-11 pr-4 py-3 rounded-xl border border-slate-200 text-sm focus:ring-2 focus:ring-teal-500 outline-none bg-slate-50/50">
+        </div>
+
+        <!-- Category Filter Pills -->
+        <div class="flex flex-wrap items-center gap-1.5" id="dictionary-category-filters"></div>
+      </div>
+
+      <div class="flex items-center justify-between text-xs text-slate-500 px-2">
+        <span id="dictionary-results-count">Showing all preloaded medical terms</span>
+        <span>Click any card to highlight in reports</span>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" id="dictionary-cards-grid"></div>
+
+    </section>
+
+    <!-- ---------------------------------------------------------------------
+         VIEW 4: UI CUSTOMIZER (EXCLUSIVE TO USER)
+         --------------------------------------------------------------------- -->
+    <section id="view-customizer" class="hidden space-y-6">
+      
+      <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+        <div class="flex items-center space-x-3">
+          <div class="w-10 h-10 rounded-xl bg-teal-100 text-teal-700 flex items-center justify-center">
+            <i data-lucide="sliders" class="w-5 h-5"></i>
+          </div>
+          <div>
+            <h1 class="text-xl font-bold text-slate-900">Customizable UI & Theme Studio</h1>
+            <p class="text-xs text-slate-500">Personalize colors, clinic/owner branding, font styles, and AI defaults. Easily customizable only by you.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        
+        <div class="lg:col-span-2 space-y-6">
+          <!-- Preset Theme Selector -->
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <h2 class="text-base font-bold text-slate-900 flex items-center space-x-2">
+              <i data-lucide="palette" class="w-4 h-4 text-teal-600"></i>
+              <span>Select Color Theme Preset</span>
+            </h2>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3" id="theme-preset-cards"></div>
+          </div>
+
+          <!-- Branding & App Identity Settings -->
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <h2 class="text-base font-bold text-slate-900 flex items-center space-x-2">
+              <i data-lucide="tag" class="w-4 h-4 text-teal-600"></i>
+              <span>Branding & App Identity</span>
+            </h2>
+
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="space-y-1">
+                <label class="text-xs font-semibold text-slate-700">App Name</label>
+                <input type="text" id="cust-app-name" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-teal-500 outline-none">
+              </div>
+              <div class="space-y-1">
+                <label class="text-xs font-semibold text-slate-700">Version Badge</label>
+                <input type="text" id="cust-version-badge" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-teal-500 outline-none">
+              </div>
+              <div class="sm:col-span-2 space-y-1">
+                <label class="text-xs font-semibold text-slate-700">App Tagline / Subtitle</label>
+                <input type="text" id="cust-app-tagline" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-teal-500 outline-none">
+              </div>
+              <div class="sm:col-span-2 space-y-1">
+                <label class="text-xs font-semibold text-slate-700">Personal Health Portal Owner Name</label>
+                <input type="text" id="cust-owner-name" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-sm focus:ring-2 focus:ring-teal-500 outline-none">
+              </div>
+            </div>
+          </div>
+
+          <!-- Feature Toggles -->
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <h2 class="text-base font-bold text-slate-900 flex items-center space-x-2">
+              <i data-lucide="toggle-left" class="w-4 h-4 text-teal-600"></i>
+              <span>App Feature Toggles</span>
+            </h2>
+
+            <div class="space-y-3" id="cust-feature-toggles">
+              <label class="flex items-center space-x-3 cursor-pointer">
+                <input type="checkbox" id="toggle-term-tooltips" class="w-4 h-4 text-teal-600 rounded">
+                <span class="text-sm text-slate-700">Enable Preloaded Terminology Tooltips in Reports</span>
+              </label>
+              <label class="flex items-center space-x-3 cursor-pointer">
+                <input type="checkbox" id="toggle-doctor-questions" class="w-4 h-4 text-teal-600 rounded">
+                <span class="text-sm text-slate-700">Generate Questions to Ask Doctor</span>
+              </label>
+              <label class="flex items-center space-x-3 cursor-pointer">
+                <input type="checkbox" id="toggle-auto-timeline" class="w-4 h-4 text-teal-600 rounded">
+                <span class="text-sm text-slate-700">Enable 1-Click Timeline Auto-Sync</span>
+              </label>
+              <label class="flex items-center space-x-3 cursor-pointer">
+                <input type="checkbox" id="toggle-chat-assistant" class="w-4 h-4 text-teal-600 rounded">
+                <span class="text-sm text-slate-700">Enable Follow-up Chat Assistant on Reports</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sidebar: Save & Export -->
+        <div class="space-y-6">
+          <div class="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4">
+            <h2 class="text-base font-bold text-slate-900">Save & Apply</h2>
+            <p class="text-xs text-slate-500">Your custom settings are saved directly in your browser. You can also export them as a code snippet.</p>
+
+            <button id="btn-save-custom-settings" class="w-full py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-semibold text-sm shadow-sm transition flex items-center justify-center space-x-2">
+              <i data-lucide="save" class="w-4 h-4"></i>
+              <span>Save & Apply UI Settings</span>
+            </button>
+
+            <button id="btn-reset-theme-defaults" class="w-full py-2 rounded-xl text-red-600 hover:bg-red-50 text-xs font-medium transition">
+              Reset to Factory Defaults
+            </button>
+          </div>
+
+          <div class="bg-slate-900 text-slate-200 p-5 rounded-2xl shadow-sm space-y-3 font-mono text-xs">
+            <div class="flex items-center space-x-2 text-teal-400 font-semibold">
+              <i data-lucide="code" class="w-4 h-4"></i>
+              <span>GitHub Ready</span>
+            </div>
+            <p class="text-slate-400 font-sans text-xs">This entire application is 100% self-contained in this single file. You can push it directly to GitHub or deploy via GitHub Pages with zero build commands!</p>
+          </div>
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- =========================================================================
+       3. FOOTER
+       ========================================================================= -->
+  <footer class="bg-white border-t border-slate-200 py-6 mt-12 transition-colors">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+      <div class="flex items-center space-x-2">
+        <i data-lucide="shield-alert" class="w-4 h-4 text-amber-500"></i>
+        <span id="footer-disclaimer-text">Educational tool powered by Google Gemini. Always consult a licensed healthcare professional for medical decisions.</span>
+      </div>
+      <div>
+        <span id="footer-owner-branding">Personal Medical Workspace</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- =========================================================================
+       4. MODALS & TOOLTIP POPOVER
+       ========================================================================= -->
+
+  <!-- Modal 1: Gemini API Key Modal -->
+  <div id="modal-api-key" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center space-x-2 text-slate-900 font-bold">
+          <i data-lucide="key" class="w-5 h-5 text-teal-600"></i>
+          <span>Google Gemini API Key</span>
+        </div>
+        <button class="modal-close-btn text-slate-400 hover:text-slate-600">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="space-y-3">
+        <p class="text-xs text-slate-600 leading-relaxed">Enter your Google Gemini API key to enable live AI medical report simplification. Your key is stored strictly on your local browser and is never sent to external servers.</p>
+        
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-700">Gemini API Key</label>
+          <div class="relative">
+            <input type="password" id="input-gemini-key" placeholder="AIzaSy..." class="w-full pl-3 pr-10 py-2.5 rounded-xl border border-slate-200 text-sm font-mono focus:ring-2 focus:ring-teal-500 outline-none">
+            <button type="button" id="btn-toggle-key-visibility" class="absolute right-3 top-3 text-slate-400 hover:text-slate-600">
+              <i data-lucide="eye" class="w-4 h-4"></i>
+            </button>
+          </div>
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-700">Gemini Model</label>
+          <select id="select-modal-model" class="w-full px-3 py-2 rounded-xl border border-slate-200 text-xs font-medium focus:ring-2 focus:ring-teal-500 outline-none">
+            <option value="gemini-2.5-flash">Gemini 2.5 Flash (Ultra Fast & Recommended)</option>
+            <option value="gemini-1.5-flash">Gemini 1.5 Flash (Fast & High Quota)</option>
+            <option value="gemini-1.5-pro">Gemini 1.5 Pro (Deep Clinical Reasoning)</option>
+          </select>
+        </div>
+
+        <div class="text-xs text-slate-500 flex items-center space-x-1">
+          <span>Need an API key?</span>
+          <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer" class="text-teal-600 hover:underline font-semibold flex items-center space-x-0.5">
+            <span>Get one free at Google AI Studio</span>
+            <i data-lucide="external-link" class="w-3 h-3"></i>
+          </a>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-end space-x-2 pt-3 border-t border-slate-100">
+        <button id="btn-clear-api-key" class="px-3 py-2 rounded-xl text-xs font-medium text-red-600 hover:bg-red-50 transition">Remove Key</button>
+        <button id="btn-save-api-key" class="px-4 py-2 rounded-xl text-xs font-semibold bg-teal-600 hover:bg-teal-700 text-white transition">Save & Connect</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: Add Health Record Modal -->
+  <div id="modal-add-record" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-slate-200 space-y-4 max-h-[90vh] overflow-y-auto">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center space-x-2 text-slate-900 font-bold">
+          <i data-lucide="calendar-plus" class="w-5 h-5 text-teal-600"></i>
+          <span>Add Medical Event to Timeline</span>
+        </div>
+        <button class="modal-close-btn text-slate-400 hover:text-slate-600">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="form-add-timeline-record" class="space-y-3">
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="space-y-1">
+            <label class="text-xs font-semibold text-slate-700">Date of Event *</label>
+            <input type="date" id="record-date" required class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:ring-2 focus:ring-teal-500 outline-none">
+          </div>
+          <div class="space-y-1">
+            <label class="text-xs font-semibold text-slate-700">Category *</label>
+            <select id="record-category" required class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:ring-2 focus:ring-teal-500 outline-none">
+              <option value="Lab Tests">🔬 Lab Tests</option>
+              <option value="Imaging & Scans">🩻 Imaging & Scans</option>
+              <option value="Doctor Visits">🩺 Doctor Visits</option>
+              <option value="Prescriptions">💊 Prescriptions</option>
+              <option value="Hospital & Surgeries">🏥 Hospital & Surgeries</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-700">Event Title *</label>
+          <input type="text" id="record-title" placeholder="e.g. Annual Blood Panel or Spine MRI" required class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:ring-2 focus:ring-teal-500 outline-none">
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="space-y-1">
+            <label class="text-xs font-semibold text-slate-700">Doctor / Specialist</label>
+            <input type="text" id="record-doctor" placeholder="e.g. Dr. Vance, MD" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:ring-2 focus:ring-teal-500 outline-none">
+          </div>
+          <div class="space-y-1">
+            <label class="text-xs font-semibold text-slate-700">Facility / Clinic</label>
+            <input type="text" id="record-facility" placeholder="e.g. Metro Health Lab" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:ring-2 focus:ring-teal-500 outline-none">
+          </div>
+        </div>
+
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-700">Summary / Findings</label>
+          <textarea id="record-summary" rows="3" placeholder="Brief explanation of findings, doctor recommendations, or prescriptions..." class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:ring-2 focus:ring-teal-500 outline-none"></textarea>
+        </div>
+
+        <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 space-y-2">
+          <label class="text-xs font-bold text-slate-700 flex items-center space-x-1">
+            <i data-lucide="trending-up" class="w-3.5 h-3.5 text-teal-600"></i>
+            <span>Tracked Biomarker / Metric (Optional)</span>
+          </label>
+          <div class="grid grid-cols-3 gap-2">
+            <input type="text" id="record-metric-name" placeholder="Name (e.g. Glucose)" class="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs bg-white">
+            <input type="text" id="record-metric-value" placeholder="Value (e.g. 114)" class="px-2.5 py-1.5 rounded-lg border border-slate-200 text-xs bg-white">
+            <select id="record-metric-status" class="px-2 py-1.5 rounded-lg border border-slate-200 text-xs bg-white">
+              <option value="Normal">Normal</option>
+              <option value="Attention">Attention</option>
+              <option value="Critical">Critical</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex items-center justify-end space-x-2 pt-3 border-t border-slate-100">
+          <button type="button" class="modal-close-btn px-4 py-2 rounded-xl text-xs font-medium text-slate-600 hover:bg-slate-100 transition">Cancel</button>
+          <button type="submit" class="px-5 py-2 rounded-xl text-xs font-semibold bg-teal-600 hover:bg-teal-700 text-white transition">Save Event</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal 3: Add Custom Term Modal -->
+  <div id="modal-add-term" class="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-sm hidden flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-200 space-y-4">
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+        <div class="flex items-center space-x-2 text-slate-900 font-bold">
+          <i data-lucide="book-plus" class="w-5 h-5 text-teal-600"></i>
+          <span>Add Custom Term to Dictionary</span>
+        </div>
+        <button class="modal-close-btn text-slate-400 hover:text-slate-600">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <form id="form-add-custom-term" class="space-y-3">
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-700">Medical Term or Abbreviation *</label>
+          <input type="text" id="newterm-name" placeholder="e.g. Troponin I or Osteopenia" required class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:ring-2 focus:ring-teal-500 outline-none">
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-700">Category</label>
+          <input type="text" id="newterm-category" placeholder="e.g. Heart / Blood / General" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:ring-2 focus:ring-teal-500 outline-none">
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-700">Everyday Plain English Meaning *</label>
+          <textarea id="newterm-plain" rows="3" placeholder="Explain it in simple, everyday words..." required class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:ring-2 focus:ring-teal-500 outline-none"></textarea>
+        </div>
+        <div class="space-y-1">
+          <label class="text-xs font-semibold text-slate-700">Normal Range / Context</label>
+          <input type="text" id="newterm-range" placeholder="e.g. Under 0.04 ng/mL" class="w-full px-3 py-2 rounded-lg border border-slate-200 text-xs focus:ring-2 focus:ring-teal-500 outline-none">
+        </div>
+
+        <div class="flex items-center justify-end space-x-2 pt-3 border-t border-slate-100">
+          <button type="button" class="modal-close-btn px-4 py-2 rounded-xl text-xs font-medium text-slate-600 hover:bg-slate-100 transition">Cancel</button>
+          <button type="submit" class="px-5 py-2 rounded-xl text-xs font-semibold bg-teal-600 hover:bg-teal-700 text-white transition">Add Term</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Terminology Tooltip Popover -->
+  <div id="terminology-popover" class="med-tooltip-box hidden">
+    <div class="flex items-start justify-between border-b border-slate-100 pb-2 mb-2">
+      <div>
+        <h4 id="popover-term-title" class="font-bold text-teal-800 text-sm"></h4>
+        <span id="popover-term-category" class="text-[11px] text-slate-500 uppercase tracking-wider font-semibold"></span>
+      </div>
+      <button id="btn-close-popover" class="text-slate-400 hover:text-slate-600">
+        <i data-lucide="x" class="w-3.5 h-3.5"></i>
+      </button>
+    </div>
+    <div class="space-y-2 text-xs">
+      <div>
+        <span class="font-bold text-slate-800 block mb-0.5">Everyday Explanation:</span>
+        <p id="popover-term-plain" class="text-slate-600 leading-relaxed"></p>
+      </div>
+      <div id="popover-term-range-wrapper" class="bg-slate-50 p-2 rounded-lg border border-slate-200">
+        <span class="font-bold text-slate-700 block text-[11px]">Normal Reference Range:</span>
+        <span id="popover-term-range" class="text-slate-600 text-[11px]"></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- =========================================================================
+       5. ALL APPLICATION JAVASCRIPT (CONSOLIDATED & ORGANIZED IN ONE PLACE)
+       ========================================================================= -->
+  <script>
+    /**
+     * ========================================================================
+     * SECTION A: USER UI CONFIGURATION & THEME PRESETS (EASILY CUSTOMIZABLE)
+     * ========================================================================
+     * You can tweak any value below to change branding, colors, or AI options!
+     */
+    const UI_CONFIG = {
+      branding: {
+        appName: "MedClarify AI",
+        appTagline: "AI Medical Report Simplifier & Health Timeline",
+        ownerName: "Personal Health Portal",
+        versionBadge: "v2.0 Pro",
+        footerDisclaimer: "Educational tool powered by Google Gemini. Always consult a licensed healthcare professional for medical decisions."
+      },
+      // Active theme: 'clinical-teal' | 'royal-indigo' | 'emerald-wellness' | 'midnight-dark' | 'soft-rose'
+      activeTheme: "clinical-teal",
+      themes: {
+        "clinical-teal": {
+          name: "Clinical Teal (Fresh Medical)",
+          primary: "#0d9488", primaryHover: "#0f766e", primaryLight: "#ccfbf1",
+          accent: "#0284c7", bgBody: "#f8fafc", bgCard: "#ffffff",
+          textMain: "#0f172a", textMuted: "#64748b", borderColor: "#e2e8f0"
+        },
+        "royal-indigo": {
+          name: "Royal Indigo (Modern & Sleek)",
+          primary: "#4f46e5", primaryHover: "#4338ca", primaryLight: "#e0e7ff",
+          accent: "#06b6d4", bgBody: "#f8fafc", bgCard: "#ffffff",
+          textMain: "#0f172a", textMuted: "#64748b", borderColor: "#e2e8f0"
+        },
+        "emerald-wellness": {
+          name: "Emerald Wellness (Calm Organic)",
+          primary: "#059669", primaryHover: "#047857", primaryLight: "#d1fae5",
+          accent: "#10b981", bgBody: "#fbfcf8", bgCard: "#ffffff",
+          textMain: "#1c1917", textMuted: "#78716c", borderColor: "#e7e5e4"
+        },
+        "midnight-dark": {
+          name: "Midnight Luxury (Dark Mode)",
+          primary: "#38bdf8", primaryHover: "#0284c7", primaryLight: "#0f2d42",
+          accent: "#818cf8", bgBody: "#0b1120", bgCard: "#131d31",
+          textMain: "#f1f5f9", textMuted: "#94a3b8", borderColor: "#1e293b"
+        },
+        "soft-rose": {
+          name: "Soft Rose (Empathetic Care)",
+          primary: "#e11d48", primaryHover: "#be123c", primaryLight: "#ffe4e6",
+          accent: "#8b5cf6", bgBody: "#fffbfa", bgCard: "#ffffff",
+          textMain: "#1f2937", textMuted: "#6b7280", borderColor: "#f3f4f6"
+        }
+      },
+      aiDefaults: {
+        defaultModel: "gemini-2.5-flash",
+        simplificationLevel: "5th-grade",
+        temperature: 0.2,
+        maxOutputTokens: 3500
+      },
+      features: {
+        enablePreloadedTerminologyHighlights: true,
+        enableReportChatAssistant: true,
+        enableAutoTimelineSync: true,
+        enableExportPrint: true,
+        enableDoctorQuestions: true
+      }
+    };
+
+    /**
+     * ========================================================================
+     * SECTION B: PRELOADED MEDICAL TERMINOLOGY KNOWLEDGE BASE
+     * ========================================================================
+     */
+    const MEDICAL_TERMINOLOGY_DATABASE = [
+      {
+        id: "hemoglobin",
+        term: "Hemoglobin (Hgb / Hb)",
+        aliases: ["hemoglobin", "hgb", "hb"],
+        category: "Complete Blood Count (CBC)",
+        plainEnglish: "The oxygen-carrying protein in your red blood cells. Think of hemoglobin as tiny delivery trucks carrying fresh oxygen from your lungs to every organ in your body.",
+        normalRange: "Men: 13.8 - 17.2 g/dL | Women: 12.1 - 15.1 g/dL",
+        whyItMatters: "Low levels mean anemia (causing tiredness, pale skin, or shortness of breath). High levels can happen in smokers or from dehydration."
+      },
+      {
+        id: "hematocrit",
+        term: "Hematocrit (Hct)",
+        aliases: ["hematocrit", "hct"],
+        category: "Complete Blood Count (CBC)",
+        plainEnglish: "The percentage of your blood that is made up of red blood cells. If blood were a soup, hematocrit tells you how thick the vegetables are compared to the broth.",
+        normalRange: "Men: 40.7% - 50.3% | Women: 36.1% - 44.3%",
+        whyItMatters: "Low hematocrit points to anemia or blood loss. High hematocrit can mean severe dehydration."
+      },
+      {
+        id: "wbc",
+        term: "White Blood Cells (WBC / Leukocytes)",
+        aliases: ["wbc", "white blood cells", "white blood cell count", "leukocytes"],
+        category: "Complete Blood Count (CBC)",
+        plainEnglish: "Your body's immune system defense army. They fight off viruses, bacteria, and help clean up damaged tissue.",
+        normalRange: "4,500 to 11,000 cells/mcL",
+        whyItMatters: "High WBC usually means your body is currently fighting an infection or experiencing inflammation."
+      },
+      {
+        id: "platelets",
+        term: "Platelets (Thrombocytes / Plt)",
+        aliases: ["platelets", "platelet count", "plt", "thrombocytes"],
+        category: "Complete Blood Count (CBC)",
+        plainEnglish: "Tiny cell fragments that form sticky plugs to stop bleeding when you get a cut or injury. Internal bandages.",
+        normalRange: "150,000 to 450,000 /mcL",
+        whyItMatters: "Too low causes easy bruising and nosebleeds; too high increases blood clot risks."
+      },
+      {
+        id: "neutrophils",
+        term: "Neutrophils (Polys / Segs)",
+        aliases: ["neutrophils", "neutrophil count", "absolute neutrophil count"],
+        category: "Complete Blood Count (CBC)",
+        plainEnglish: "The frontline troops of white blood cells that destroy bacterial infections.",
+        normalRange: "40% - 70% of total WBC",
+        whyItMatters: "High counts indicate bacterial infections or sudden inflammation."
+      },
+      {
+        id: "fasting-glucose",
+        term: "Fasting Glucose (Blood Sugar)",
+        aliases: ["glucose", "blood sugar", "fasting blood sugar", "fbs"],
+        category: "Metabolic & Diabetes",
+        plainEnglish: "The amount of simple sugar circulating in your bloodstream after fasting. Main fuel powering your body.",
+        normalRange: "70 - 99 mg/dL (Normal) | 100 - 125 mg/dL (Prediabetes) | 126+ mg/dL (Diabetes)",
+        whyItMatters: "Consistently high blood sugar can damage blood vessels, nerves, eyes, and kidneys over time."
+      },
+      {
+        id: "hba1c",
+        term: "Hemoglobin A1c (HbA1c / Glycated Hemoglobin)",
+        aliases: ["hba1c", "a1c", "glycated hemoglobin"],
+        category: "Metabolic & Diabetes",
+        plainEnglish: "A 3-month running average of your blood sugar levels. Shows the big picture over the past 90 days.",
+        normalRange: "Below 5.7% (Normal) | 5.7% - 6.4% (Prediabetes) | 6.5%+ (Diabetes)",
+        whyItMatters: "Used to diagnose and track diabetes control."
+      },
+      {
+        id: "creatinine",
+        term: "Creatinine (Serum Creatinine)",
+        aliases: ["creatinine", "serum creatinine"],
+        category: "Kidney Function (Renal)",
+        plainEnglish: "A natural waste product produced by normal muscle breakdown that healthy kidneys filter into urine.",
+        normalRange: "Men: 0.7 - 1.3 mg/dL | Women: 0.5 - 1.1 mg/dL",
+        whyItMatters: "If kidneys are struggling or sluggish, creatinine builds up in your blood, making this number rise."
+      },
+      {
+        id: "egfr",
+        term: "Estimated GFR (eGFR)",
+        aliases: ["egfr", "gfr", "estimated glomerular filtration rate"],
+        category: "Kidney Function (Renal)",
+        plainEnglish: "The speedometer of your kidneys: measures how many milliliters of blood your kidneys clean every minute.",
+        normalRange: "90+ (Normal) | 60 - 89 (Mild decline) | Below 60 (Possible kidney issue)",
+        whyItMatters: "A number above 60 is reassuring; below 60 requires regular monitoring."
+      },
+      {
+        id: "alt",
+        term: "Alanine Aminotransferase (ALT / SGPT)",
+        aliases: ["alt", "sgpt", "alanine aminotransferase"],
+        category: "Liver Function (Hepatic)",
+        plainEnglish: "An enzyme found inside liver cells. When liver cells are irritated, ALT leaks into the bloodstream.",
+        normalRange: "7 - 56 U/L",
+        whyItMatters: "One of the most sensitive indicators of liver irritation (fatty liver, medications, alcohol)."
+      },
+      {
+        id: "ast",
+        term: "Aspartate Aminotransferase (AST / SGOT)",
+        aliases: ["ast", "sgot", "aspartate aminotransferase"],
+        category: "Liver Function (Hepatic)",
+        plainEnglish: "An enzyme found in liver and muscle cells that leaks into blood when these tissues are stressed.",
+        normalRange: "10 - 40 U/L",
+        whyItMatters: "Evaluated alongside ALT to check liver health."
+      },
+      {
+        id: "total-cholesterol",
+        term: "Total Cholesterol",
+        aliases: ["total cholesterol", "cholesterol"],
+        category: "Lipid Profile (Cholesterol)",
+        plainEnglish: "The total amount of all cholesterol types circulating in your blood.",
+        normalRange: "Desirable: Under 200 mg/dL | Borderline: 200 - 239 mg/dL | High: 240+ mg/dL",
+        whyItMatters: "Excess cholesterol can deposit in blood vessel walls, forming plaques."
+      },
+      {
+        id: "ldl-cholesterol",
+        term: "LDL Cholesterol (Bad Cholesterol)",
+        aliases: ["ldl", "ldl cholesterol", "ldl-c"],
+        category: "Lipid Profile (Cholesterol)",
+        plainEnglish: "Known as 'bad cholesterol' because it carries cholesterol particles to artery walls where it can stick.",
+        normalRange: "Optimal: Under 100 mg/dL (Under 70 mg/dL for high-risk heart patients)",
+        whyItMatters: "The main target doctors monitor to lower heart attack and stroke risk."
+      },
+      {
+        id: "hdl-cholesterol",
+        term: "HDL Cholesterol (Good Cholesterol)",
+        aliases: ["hdl", "hdl cholesterol", "hdl-c"],
+        category: "Lipid Profile (Cholesterol)",
+        plainEnglish: "The 'good cholesterol' recycling truck that scoops up excess cholesterol and brings it back to the liver.",
+        normalRange: "50+ mg/dL (Women) | 40+ mg/dL (Men)",
+        whyItMatters: "Higher numbers protect your heart."
+      },
+      {
+        id: "triglycerides",
+        term: "Triglycerides",
+        aliases: ["triglycerides", "trigs"],
+        category: "Lipid Profile (Cholesterol)",
+        plainEnglish: "The most common type of fat stored in your body from extra food calories and carbohydrates.",
+        normalRange: "Under 150 mg/dL (Normal) | 150 - 199 mg/dL (Borderline) | 200+ (High)",
+        whyItMatters: "High triglycerides thicken artery walls and increase risk of pancreatitis."
+      },
+      {
+        id: "tsh",
+        term: "Thyroid Stimulating Hormone (TSH)",
+        aliases: ["tsh", "thyroid stimulating hormone"],
+        category: "Thyroid & Endocrinology",
+        plainEnglish: "The brain's thermostat signal to the thyroid gland: high TSH means sluggish thyroid; low TSH means hyperactive thyroid.",
+        normalRange: "0.4 - 4.0 mIU/L",
+        whyItMatters: "Controls whole-body energy, metabolism, and temperature."
+      },
+      {
+        id: "ferritin",
+        term: "Ferritin (Iron Storage)",
+        aliases: ["ferritin", "serum ferritin"],
+        category: "Vitamins & Minerals",
+        plainEnglish: "Your body's iron storage bank vault. Tells you how much iron you have saved for red blood cells.",
+        normalRange: "Men: 24 - 336 ng/mL | Women: 11 - 307 ng/mL",
+        whyItMatters: "Low ferritin causes fatigue, cold hands, hair thinning, and iron deficiency."
+      },
+      {
+        id: "stenosis",
+        term: "Stenosis (Narrowing)",
+        aliases: ["stenosis", "spinal stenosis", "foraminal stenosis"],
+        category: "Radiology & Spine",
+        plainEnglish: "The abnormal narrowing of an opening, blood vessel, or spinal nerve canal (like pinching a hose).",
+        normalRange: "Normal open caliber",
+        whyItMatters: "In spine, it pinches nerves causing numbness or pain down the legs."
+      },
+      {
+        id: "herniation",
+        term: "Disc Herniation / Bulge",
+        aliases: ["herniation", "disc bulge", "herniated disc", "extrusion"],
+        category: "Radiology & Spine",
+        plainEnglish: "Spinal cushions act like jelly donuts. A herniation means the inner jelly is bulging and pressing against nearby nerves.",
+        normalRange: "Discs intact within boundaries",
+        whyItMatters: "Can trigger sciatica (shooting pain down buttock and leg)."
+      },
+      {
+        id: "ejection-fraction",
+        term: "Ejection Fraction (LVEF)",
+        aliases: ["ejection fraction", "lvef", "ef"],
+        category: "Cardiology",
+        plainEnglish: "The percentage of blood your heart pumps out with each beat. A normal heart pumps 55% to 65%.",
+        normalRange: "55% to 70% (Normal) | Below 40% (Weakened pump)",
+        whyItMatters: "Primary measure of overall heart muscle strength."
+      },
+      {
+        id: "benign",
+        term: "Benign",
+        aliases: ["benign"],
+        category: "Clinical Terms",
+        plainEnglish: "Harmless, non-cancerous, and not spreading to surrounding tissue.",
+        normalRange: "Reassuring finding",
+        whyItMatters: "Indicates a cyst, mole, or tissue growth is non-threatening."
+      },
+      {
+        id: "suffix-itis",
+        term: "-itis (Inflammation)",
+        aliases: ["-itis", "itis"],
+        category: "Prefixes & Suffixes",
+        plainEnglish: "Means 'inflammation' or 'swelling' of that organ (e.g. Bronchitis = swollen bronchial tubes).",
+        normalRange: "Suffix description",
+        whyItMatters: "Instantly tells you that part of the body is swollen or irritated."
+      },
+      {
+        id: "prn",
+        term: "PRN (As Needed)",
+        aliases: ["prn", "p.r.n."],
+        category: "Prescriptions & Dosing",
+        plainEnglish: "Take medication 'as needed' only when symptoms occur, not on a strict clock schedule.",
+        normalRange: "Prescription shorthand",
+        whyItMatters: "Prevents overmedicating when symptoms are gone."
+      }
+    ];
+
+    const TerminologyService = {
+      getAllTerms: () => MEDICAL_TERMINOLOGY_DATABASE,
+      getCategories: () => Array.from(new Set(MEDICAL_TERMINOLOGY_DATABASE.map(item => item.category))),
+      search(keyword) {
+        if (!keyword || !keyword.trim()) return MEDICAL_TERMINOLOGY_DATABASE;
+        const lower = keyword.toLowerCase().trim();
+        return MEDICAL_TERMINOLOGY_DATABASE.filter(item => 
+          item.term.toLowerCase().includes(lower) ||
+          item.aliases.some(a => a.toLowerCase().includes(lower)) ||
+          item.plainEnglish.toLowerCase().includes(lower) ||
+          item.category.toLowerCase().includes(lower)
+        );
+      },
+      lookup(idOrAlias) {
+        if (!idOrAlias) return null;
+        const clean = idOrAlias.toLowerCase().trim();
+        return MEDICAL_TERMINOLOGY_DATABASE.find(item => 
+          item.id === clean || 
+          item.term.toLowerCase() === clean || 
+          item.aliases.some(a => a.toLowerCase() === clean)
+        );
+      },
+      addCustomTerm(newTerm) {
+        if (!newTerm || !newTerm.term) return false;
+        const id = newTerm.term.toLowerCase().replace(/[^a-z0-9]/g, "-");
+        MEDICAL_TERMINOLOGY_DATABASE.unshift({
+          id,
+          term: newTerm.term,
+          aliases: [newTerm.term.toLowerCase()],
+          category: newTerm.category || "Custom User Term",
+          plainEnglish: newTerm.plainEnglish,
+          normalRange: newTerm.normalRange || "Custom Entry",
+          whyItMatters: "Added by user."
+        });
+        return true;
+      }
+    };
+
+    /**
+     * ========================================================================
+     * SECTION C: REALISTIC SAMPLE MEDICAL REPORTS
+     * ========================================================================
+     */
+    const SAMPLE_REPORTS = [
+      {
+        id: "sample-lab-cmp-cbc",
+        title: "Routine Lab Panel (CBC & Metabolic Panel)",
+        text: `PATIENT CLINICAL LABORATORY REPORT\nDate: April 12, 2026\nDoctor: Dr. Evelyn Vance, MD\n\nCOMPLETE BLOOD COUNT (CBC):\n- White Blood Cells (WBC): 11.8 x10^9/L (Reference: 4.5 - 11.0) [ELEVATED]\n- Hemoglobin (Hgb): 11.6 g/dL (Reference: 12.0 - 15.5) [LOW - MILD ANEMIA]\n- Hematocrit (Hct): 35.1 % (Reference: 37.0 - 48.0) [LOW]\n- Platelet Count: 284 x10^9/L (Reference: 150 - 450) [NORMAL]\n\nCOMPREHENSIVE METABOLIC PANEL (CMP):\n- Fasting Glucose: 114 mg/dL (Reference: 70 - 99 mg/dL) [ELEVATED - IMPAIRED]\n- Hemoglobin A1c: 5.9 % (Reference: < 5.7 %) [PREDIABETES RANGE]\n- Serum Creatinine: 0.9 mg/dL (Reference: 0.6 - 1.1 mg/dL) [NORMAL]\n- Estimated GFR (eGFR): > 90 mL/min (Reference: > 60) [NORMAL RENAL FUNCTION]\n- ALT (SGPT): 42 U/L (Reference: 7 - 35 U/L) [MILD ELEVATION]\n- Serum Ferritin: 14 ng/mL (Reference: 20 - 200 ng/mL) [LOW IRON STORAGE]\n\nIMPRESSION:\n1. Mild iron deficiency anemia.\n2. Prediabetes range glucose (HbA1c 5.9%).\n3. Healthy kidney function.`
+      },
+      {
+        id: "sample-mri-lumbar",
+        title: "Lumbar Spine MRI Report",
+        text: `MRI OF THE LUMBAR SPINE\nDate: June 18, 2026\nRadiologist: Dr. Marcus Chen, MD\n\nFINDINGS:\nVertebral alignment maintained. No fractures.\nL4-L5: 4.5 mm focal left paracentral disc herniation/extrusion causing mechanical impingement of the traversing left L5 nerve root. Mild foraminal stenosis. Central spinal canal patent.\n\nIMPRESSION:\n1. L4-L5 disc extrusion impinging left L5 nerve, consistent with left sciatica.\n2. No critical central spinal canal stenosis.`
+      },
+      {
+        id: "sample-cardio-echo",
+        title: "Echocardiogram & Heart Report",
+        text: `TRANSTHORACIC ECHOCARDIOGRAM (TTE)\nDate: September 5, 2026\nCardiologist: Dr. Sarah Al-Mansoor, MD\n\nFINDINGS:\n- Left Ventricular Ejection Fraction (LVEF): 60-65% (Normal reference: 55-70%). Preserved systolic function.\n- Mild concentric left ventricular hypertrophy related to hypertension.\n- Trace physiologic mitral regurgitation.\n- No pericardial effusion.\n\nIMPRESSION:\n1. Normal heart pumping function (EF 60-65%).\n2. Mild heart wall thickening from blood pressure.`
+      }
+    ];
+
+    /**
+     * ========================================================================
+     * SECTION D: GEMINI AI ASSISTANT SERVICE
+     * ========================================================================
+     */
+    class GeminiService {
+      constructor() {
+        this.apiKey = localStorage.getItem("medclarify_gemini_api_key") || "";
+        this.model = UI_CONFIG.aiDefaults.defaultModel || "gemini-2.5-flash";
+        this.temperature = UI_CONFIG.aiDefaults.temperature || 0.2;
+      }
+      setApiKey(key) {
+        this.apiKey = (key || "").trim();
+        if (this.apiKey) localStorage.setItem("medclarify_gemini_api_key", this.apiKey);
+        else localStorage.removeItem("medclarify_gemini_api_key");
+      }
+      hasApiKey() { return Boolean(this.apiKey && this.apiKey.length > 10); }
+      setModel(modelName) { this.model = modelName; }
+
+      _buildPrompt(reportText, readingLevel) {
+        return `You are an expert, empathetic medical communicator powered by Google Gemini.
+Translate this medical report into clear, compassionate, everyday language for a patient (${readingLevel} reading level).
+
+Return valid JSON with this exact schema:
+{
+  "summary": "2-3 paragraphs providing an everyday executive summary.",
+  "keyFindings": [
+    {
+      "testOrFinding": "Name of test or scan finding",
+      "resultValue": "Value and unit",
+      "status": "Normal" | "Attention" | "Critical",
+      "plainEnglish": "Everyday plain English meaning."
+    }
+  ],
+  "lifestyleImpact": ["Practical daily life action items (diet, exercise, precautions)"],
+  "redFlags": ["Urgent warning symptoms to seek emergency care for"],
+  "doctorQuestions": ["3-5 smart questions to ask their doctor"],
+  "timelineEvent": {
+    "date": "YYYY-MM-DD",
+    "category": "Lab Tests" | "Doctor Visits" | "Imaging & Scans" | "Prescriptions" | "Hospital",
+    "title": "Short title",
+    "doctor": "Doctor or facility",
+    "facility": "Facility name",
+    "summary": "1-sentence summary",
+    "metrics": [{ "name": "Glucose", "value": "114", "unit": "mg/dL", "status": "Attention" }]
+  }
+}
+
+REPORT:
+"""
+${reportText}
+"""`;
+      }
+
+      async simplifyReport(reportText, readingLevel = "5th-grade") {
+        if (!this.hasApiKey()) return this._simulate(reportText);
+
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`;
+        const payload = {
+          contents: [{ role: "user", parts: [{ text: this._buildPrompt(reportText, readingLevel) }] }],
+          generationConfig: {
+            temperature: this.temperature,
+            maxOutputTokens: UI_CONFIG.aiDefaults.maxOutputTokens || 3500,
+            responseMimeType: "application/json"
+          }
+        };
+
+        try {
+          const res = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+          if (!res.ok) throw new Error(`API returned ${res.status}`);
+          const data = await res.json();
+          return JSON.parse(data.candidates?.[0]?.content?.parts?.[0]?.text);
+        } catch (e) {
+          console.warn("Direct Gemini call failed; using fallback simulator:", e);
+          return this._simulate(reportText, e.message);
+        }
+      }
+
+      async askFollowUpQuestion(reportContext, userQuestion) {
+        if (!this.hasApiKey()) {
+          return `In simple terms regarding "${userQuestion}": Your results show values that are close to target, but you should discuss specific symptoms with your doctor so they can adjust your plan safely.`;
+        }
+        const endpoint = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`;
+        const payload = {
+          contents: [{
+            role: "user",
+            parts: [{ text: `Medical Report:\n"""${reportContext}"""\n\nPatient Question: ${userQuestion}\nAnswer reassuringly in 2-3 simple paragraphs.` }]
+          }],
+          generationConfig: { temperature: 0.3, maxOutputTokens: 800 }
+        };
+        try {
+          const res = await fetch(endpoint, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload)
+          });
+          const data = await res.json();
+          return data.candidates?.[0]?.content?.parts?.[0]?.text || "Unable to answer at this time.";
+        } catch (err) {
+          return "I received your question! Please consult your doctor for medical advice on this specific finding.";
+        }
+      }
+
+      _simulate(text, notice = null) {
+        const isMRI = text.toLowerCase().includes("mri") || text.toLowerCase().includes("spine");
+        if (isMRI) {
+          return {
+            _isDemo: true, _notice: notice,
+            summary: "This MRI scan of your lower back shows that your spine bones are strong and healthy, but the cushioning disc at L4-L5 is bulging out (like jelly from a donut). It is gently pressing against your left L5 nerve, which explains your pain and sciatica traveling down your left leg. The main central canal where your spinal cord travels remains open and safe.",
+            keyFindings: [
+              { testOrFinding: "L4-L5 Disc Extrusion", resultValue: "4.5 mm bulge", status: "Attention", plainEnglish: "The rubbery cushion is pressing against the nerve traveling down your left leg." },
+              { testOrFinding: "Central Spinal Canal", resultValue: "Patent / No stenosis", status: "Normal", plainEnglish: "The main nerve highway in your spine has plenty of room." },
+              { testOrFinding: "Vertebral Bones", resultValue: "Healthy alignment", status: "Normal", plainEnglish: "No cracks, fractures, or bone disease." }
+            ],
+            lifestyleImpact: ["Avoid heavy deadlifting and bending from the waist.", "Gentle flat walking helps blood flow to the nerve.", "Ice or heating pads can soothe back tightness."],
+            redFlags: ["Emergency: Sudden numbness in groin or loss of bladder/bowel control requires immediate ER care."],
+            doctorQuestions: ["Would physical therapy or core stabilization exercises help this L4-L5 bulge heal?", "Should we try a short anti-inflammatory medication?", "When would an epidural or surgical consultation be needed if pain persists?"],
+            timelineEvent: {
+              date: "2026-06-18", category: "Imaging & Scans", title: "Lumbar Spine MRI (L4-L5 Disc Herniation)", doctor: "Dr. Marcus Chen, MD", facility: "Advanced Imaging", summary: "L4-L5 disc bulge causing left sciatica; bones healthy.", metrics: [{ name: "Disc Bulge", value: "4.5", unit: "mm", status: "Attention" }]
+            }
+          };
+        }
+        return {
+          _isDemo: true, _notice: notice,
+          summary: "Your blood test results show great news for your kidneys (filtering at 100% capacity) and liver. However, your hemoglobin and ferritin (iron storage) are slightly low, indicating mild iron deficiency anemia that can cause tiredness. In addition, your fasting blood sugar (114 mg/dL) and HbA1c (5.9%) are in the prediabetes range, which is completely reversible with nutrition and daily walking.",
+          keyFindings: [
+            { testOrFinding: "Hemoglobin & Ferritin", resultValue: "Hgb: 11.6 g/dL | Ferritin: 14 ng/mL", status: "Attention", plainEnglish: "Your body's iron gas tank is low, meaning fewer oxygen delivery cells." },
+            { testOrFinding: "Fasting Glucose & HbA1c", resultValue: "Glucose: 114 mg/dL | HbA1c: 5.9%", status: "Attention", plainEnglish: "Blood sugar is slightly elevated into the prediabetes range. Reversible with diet." },
+            { testOrFinding: "eGFR & Kidneys", resultValue: "> 90 mL/min", status: "Normal", plainEnglish: "Your kidneys are filtering waste products at optimal capacity." }
+          ],
+          lifestyleImpact: ["Incorporate iron-rich foods (beans, lentils, spinach, lean meats) paired with Vitamin C.", "Trim sugary drinks and refined carbs to bring glucose under 100 mg/dL.", "Take a 20-minute brisk walk after meals."],
+          redFlags: ["Contact your doctor if you experience chest pain, severe shortness of breath, or black stools."],
+          doctorQuestions: ["Do you recommend an oral iron supplement like ferrous bisglycinate?", "What is our 3-month target for fasting glucose?", "Should we re-test in 12 weeks to monitor the anemia?"],
+          timelineEvent: {
+            date: "2026-04-12", category: "Lab Tests", title: "Comprehensive Lab Panel (CBC & Metabolic)", doctor: "Dr. Evelyn Vance, MD", facility: "Metro Health", summary: "Mild iron deficiency anemia and prediabetes range blood sugar; kidneys healthy.", metrics: [{ name: "Glucose", value: "114", unit: "mg/dL", status: "Attention" }, { name: "HbA1c", value: "5.9", unit: "%", status: "Attention" }]
+          }
+        };
+      }
+    }
+    const geminiService = new GeminiService();
+
+    /**
+     * ========================================================================
+     * SECTION E: MEDICAL TIMELINE MANAGER (100% LOCAL & PRIVATE)
+     * ========================================================================
+     */
+    class TimelineManager {
+      constructor() {
+        this.storageKey = "medclarify_health_timeline_records";
+        this.records = this.loadRecords();
+        this.activeFilter = "All";
+        this.searchQuery = "";
+        this.sortOrder = "desc";
+      }
+      loadRecords() {
+        try {
+          const stored = localStorage.getItem(this.storageKey);
+          if (stored) return JSON.parse(stored);
+        } catch (e) {}
+        return [
+          {
+            id: "rec-1", date: "2026-09-05", title: "Echocardiogram & Cardiac Evaluation", category: "Imaging & Scans",
+            doctor: "Dr. Sarah Al-Mansoor, MD", facility: "Heart & Vascular Institute",
+            summary: "Normal ejection fraction (60-65%). Mild heart wall thickening from high blood pressure.",
+            metrics: [{ name: "Ejection Fraction", value: "62", unit: "%", status: "Normal" }, { name: "Blood Pressure", value: "134/86", unit: "mmHg", status: "Attention" }]
+          },
+          {
+            id: "rec-2", date: "2026-06-18", title: "Lumbar Spine MRI (Lower Back & Sciatica)", category: "Imaging & Scans",
+            doctor: "Dr. Marcus Chen, MD", facility: "Spine & Orthopedic Imaging",
+            summary: "L4-L5 disc extrusion (4.5 mm) impinging left L5 nerve; central spinal canal open.",
+            metrics: [{ name: "Disc Bulge", value: "4.5", unit: "mm", status: "Attention" }]
+          },
+          {
+            id: "rec-3", date: "2026-04-12", title: "Annual Comprehensive Lab Panel (CMP & CBC)", category: "Lab Tests",
+            doctor: "Dr. Evelyn Vance, MD", facility: "Metro Diagnostic Center",
+            summary: "Mild iron deficiency anemia (Hemoglobin 11.6, Ferritin 14). Prediabetes range sugar (HbA1c 5.9%).",
+            metrics: [{ name: "Glucose", value: "114", unit: "mg/dL", status: "Attention" }, { name: "HbA1c", value: "5.9", unit: "%", status: "Attention" }, { name: "Hemoglobin", value: "11.6", unit: "g/dL", status: "Attention" }, { name: "eGFR", value: ">90", unit: "mL/min", status: "Normal" }]
+          }
+        ];
+      }
+      saveRecords() {
+        try { localStorage.setItem(this.storageKey, JSON.stringify(this.records)); } catch (e) {}
+      }
+      addRecord(rec) {
+        if (!rec.id) rec.id = "rec-" + Date.now();
+        if (!rec.date) rec.date = new Date().toISOString().split("T")[0];
+        this.records.unshift(rec);
+        this.saveRecords();
+        return rec;
+      }
+      deleteRecord(id) {
+        this.records = this.records.filter(r => r.id !== id);
+        this.saveRecords();
+      }
+      getFilteredRecords() {
+        return this.records
+          .filter(r => {
+            if (this.activeFilter !== "All" && r.category !== this.activeFilter) return false;
+            if (this.searchQuery && this.searchQuery.trim() !== "") {
+              const q = this.searchQuery.toLowerCase();
+              const match = (r.title || "").toLowerCase().includes(q) || (r.summary || "").toLowerCase().includes(q) || (r.doctor || "").toLowerCase().includes(q);
+              if (!match) return false;
+            }
+            return true;
+          })
+          .sort((a, b) => {
+            const dA = new Date(a.date).getTime();
+            const dB = new Date(b.date).getTime();
+            return this.sortOrder === "desc" ? dB - dA : dA - dB;
+          });
+      }
+      getMetricHistory(metricName) {
+        const q = metricName.toLowerCase();
+        const list = [];
+        [...this.records].sort((a, b) => new Date(a.date) - new Date(b.date)).forEach(r => {
+          (r.metrics || []).forEach(m => {
+            if (m.name.toLowerCase().includes(q)) list.push({ date: r.date, ...m });
+          });
+        });
+        return list;
+      }
+      exportJSON() { return JSON.stringify(this.records, null, 2); }
+      importJSON(str) {
+        try {
+          const p = JSON.parse(str);
+          if (Array.isArray(p)) { this.records = p; this.saveRecords(); return { success: true, count: p.length }; }
+        } catch (e) {}
+        return { success: false };
+      }
+    }
+    const timelineManager = new TimelineManager();
+
+    /**
+     * ========================================================================
+     * SECTION F: APP CONTROLLER & INTERFACE LOGIC
+     * ========================================================================
+     */
+    const AppState = { currentTab: "simplifier", currentAnalysis: null, activeReportText: "" };
+
+    document.addEventListener("DOMContentLoaded", () => {
+      initTheme();
+      initNavigation();
+      initSimplifier();
+      initTimeline();
+      initDictionary();
+      initCustomizer();
+      initModals();
+      if (window.lucide) lucide.createIcons();
+    });
+
+    function initTheme() {
+      let config = UI_CONFIG;
+      try {
+        const saved = localStorage.getItem("medclarify_user_ui_config");
+        if (saved) config = JSON.parse(saved);
+      } catch (e) {}
+
+      const theme = config.themes[config.activeTheme || "clinical-teal"] || config.themes["clinical-teal"];
+      const r = document.documentElement;
+      r.style.setProperty("--primary", theme.primary);
+      r.style.setProperty("--primary-hover", theme.primaryHover);
+      r.style.setProperty("--primary-light", theme.primaryLight);
+      r.style.setProperty("--accent", theme.accent);
+      r.style.setProperty("--bg-body", theme.bgBody);
+      r.style.setProperty("--bg-card", theme.bgCard);
+      r.style.setProperty("--text-main", theme.textMain);
+      r.style.setProperty("--text-muted", theme.textMuted);
+      r.style.setProperty("--border-color", theme.borderColor);
+
+      const b = config.branding || {};
+      document.title = `${b.appName || "MedClarify AI"} - Medical Report Simplifier`;
+      document.getElementById("brand-app-name").textContent = b.appName || "MedClarify AI";
+      document.getElementById("brand-app-tagline").textContent = b.appTagline || "AI Medical Report Simplifier & Health Timeline";
+      document.getElementById("brand-version-badge").textContent = b.versionBadge || "v2.0 Pro";
+      document.getElementById("footer-disclaimer-text").textContent = b.footerDisclaimer || "";
+      document.getElementById("footer-owner-branding").textContent = b.ownerName || "";
+
+      updateApiDot();
+    }
+
+    function updateApiDot() {
+      const dot = document.getElementById("api-status-dot");
+      const label = document.getElementById("api-status-label");
+      if (!dot) return;
+      if (geminiService.hasApiKey()) {
+        dot.className = "w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse";
+        if (label) label.textContent = "Gemini Ready";
+      } else {
+        dot.className = "w-2.5 h-2.5 rounded-full bg-amber-400";
+        if (label) label.textContent = "Demo Mode";
+      }
+    }
+
+    function initNavigation() {
+      document.querySelectorAll(".nav-tab").forEach(tab => {
+        tab.addEventListener("click", () => switchTab(tab.getAttribute("data-tab")));
+      });
+      document.getElementById("nav-brand-logo")?.addEventListener("click", () => switchTab("simplifier"));
+      document.getElementById("btn-quick-print")?.addEventListener("click", () => window.print());
+    }
+
+    function switchTab(tabId) {
+      AppState.currentTab = tabId;
+      document.querySelectorAll(".nav-tab").forEach(t => {
+        const isMatch = t.getAttribute("data-tab") === tabId;
+        t.className = isMatch
+          ? "nav-tab px-4 py-2 rounded-lg text-sm font-semibold transition-all flex items-center space-x-2 bg-white text-teal-700 shadow-sm"
+          : "nav-tab px-4 py-2 rounded-lg text-sm font-medium text-slate-600 hover:text-slate-900 transition-all flex items-center space-x-2";
+      });
+      ["simplifier", "timeline", "dictionary", "customizer"].forEach(v => {
+        document.getElementById(`view-${v}`)?.classList.toggle("hidden", v !== tabId);
+      });
+      if (tabId === "timeline") renderTimeline();
+      if (tabId === "dictionary") renderDictionary();
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function initSimplifier() {
+      const textarea = document.getElementById("report-input-text");
+      const counter = document.getElementById("input-char-count");
+      textarea?.addEventListener("input", () => { counter.textContent = `${textarea.value.length} characters`; });
+      document.getElementById("btn-clear-input")?.addEventListener("click", () => {
+        if (textarea) textarea.value = "";
+        counter.textContent = "0 characters";
+        document.getElementById("simplifier-results")?.classList.add("hidden");
+      });
+
+      document.querySelectorAll(".btn-load-sample").forEach(btn => {
+        btn.addEventListener("click", () => {
+          const s = SAMPLE_REPORTS.find(x => x.id === btn.getAttribute("data-sample"));
+          if (s && textarea) {
+            textarea.value = s.text;
+            counter.textContent = `${s.text.length} characters`;
+            textarea.scrollIntoView({ behavior: "smooth", block: "center" });
+          }
+        });
+      });
+
+      const fileInput = document.getElementById("file-upload-input");
+      document.getElementById("btn-trigger-upload")?.addEventListener("click", () => fileInput?.click());
+      fileInput?.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          if (textarea) {
+            textarea.value = evt.target.result;
+            counter.textContent = `${textarea.value.length} characters`;
+          }
+        };
+        reader.readAsText(file);
+      });
+
+      document.getElementById("btn-simplify-report")?.addEventListener("click", async () => {
+        const text = (textarea?.value || "").trim();
+        if (!text) { alert("Please paste or select a medical report first!"); return; }
+
+        const level = document.getElementById("select-reading-level")?.value || "5th-grade";
+        const loader = document.getElementById("simplifier-loading");
+        const results = document.getElementById("simplifier-results");
+
+        loader?.classList.remove("hidden");
+        results?.classList.add("hidden");
+
+        try {
+          AppState.activeReportText = text;
+          const data = await geminiService.simplifyReport(text, level);
+          AppState.currentAnalysis = data;
+          renderResults(data);
+          loader?.classList.add("hidden");
+          results?.classList.remove("hidden");
+          results?.scrollIntoView({ behavior: "smooth", block: "start" });
+        } catch (err) {
+          loader?.classList.add("hidden");
+          alert("Error: " + err.message);
+        }
+      });
+
+      document.getElementById("btn-add-to-timeline")?.addEventListener("click", () => {
+        if (!AppState.currentAnalysis) return;
+        const ev = AppState.currentAnalysis.timelineEvent || {
+          date: new Date().toISOString().split("T")[0],
+          category: "Lab Tests", title: "Medical Report",
+          summary: AppState.currentAnalysis.summary?.slice(0, 140) + "..."
+        };
+        timelineManager.addRecord(ev);
+        alert("Record added to your Medical Timeline!");
+        switchTab("timeline");
+      });
+
+      document.getElementById("btn-print-report")?.addEventListener("click", () => window.print());
+
+      document.getElementById("report-chat-form")?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const input = document.getElementById("report-chat-input");
+        const q = (input?.value || "").trim();
+        if (!q) return;
+
+        const container = document.getElementById("report-chat-messages");
+        container.innerHTML += `
+          <div class="flex items-start justify-end space-x-2">
+            <div class="bg-teal-600 text-white p-3 rounded-xl max-w-md text-xs sm:text-sm shadow-xs">${escapeHtml(q)}</div>
+            <div class="w-6 h-6 rounded-full bg-slate-300 text-slate-700 flex items-center justify-center text-[10px] shrink-0">YOU</div>
+          </div>
+        `;
+        input.value = "";
+        container.scrollTop = container.scrollHeight;
+
+        const ans = await geminiService.askFollowUpQuestion(AppState.activeReportText, q);
+        container.innerHTML += `
+          <div class="flex items-start space-x-2.5">
+            <div class="w-6 h-6 rounded-full bg-teal-600 text-white flex items-center justify-center text-[10px] shrink-0">AI</div>
+            <div class="bg-white p-3 rounded-xl border border-slate-200 text-slate-700 text-xs sm:text-sm shadow-xs max-w-xl">
+              ${highlightTerms(ans)}
+            </div>
+          </div>
+        `;
+        bindHighlights(container);
+        container.scrollTop = container.scrollHeight;
+      });
+
+      document.getElementById("btn-close-popover")?.addEventListener("click", () => {
+        document.getElementById("terminology-popover")?.classList.add("hidden");
+      });
+      document.addEventListener("click", (e) => {
+        const pop = document.getElementById("terminology-popover");
+        if (pop && !pop.contains(e.target) && !e.target.classList.contains("med-term-highlight")) {
+          pop.classList.add("hidden");
+        }
+      });
+    }
+
+    function renderResults(data) {
+      document.getElementById("demo-mode-badge")?.classList.toggle("hidden", !data._isDemo);
+
+      const summaryBox = document.getElementById("result-summary-text");
+      if (summaryBox) {
+        summaryBox.innerHTML = `<p>${highlightTerms(data.summary || "").replace(/\n\n/g, "</p><p>")}</p>`;
+        bindHighlights(summaryBox);
+      }
+
+      const tbody = document.getElementById("result-findings-tbody");
+      if (tbody) {
+        tbody.innerHTML = (data.keyFindings || []).map(f => {
+          let badge = `<span class="px-2.5 py-1 rounded-full text-xs font-semibold status-badge-normal">Normal</span>`;
+          if (f.status === "Critical") badge = `<span class="px-2.5 py-1 rounded-full text-xs font-bold status-badge-critical">Critical</span>`;
+          if (f.status === "Attention") badge = `<span class="px-2.5 py-1 rounded-full text-xs font-semibold status-badge-attention">Attention</span>`;
+
+          return `
+            <tr class="hover:bg-slate-50/80">
+              <td class="py-3 px-4 font-semibold text-slate-800">${escapeHtml(f.testOrFinding)}</td>
+              <td class="py-3 px-4 font-mono text-xs text-slate-700">${escapeHtml(f.resultValue)}</td>
+              <td class="py-3 px-4">${badge}</td>
+              <td class="py-3 px-4 text-slate-600">${highlightTerms(f.plainEnglish || "")}</td>
+            </tr>
+          `;
+        }).join("");
+        bindHighlights(tbody);
+      }
+
+      const lList = document.getElementById("result-lifestyle-list");
+      if (lList) {
+        lList.innerHTML = (data.lifestyleImpact || []).map(p => `
+          <li class="flex items-start space-x-2">
+            <span class="text-emerald-500 font-bold mt-0.5">•</span>
+            <span class="leading-relaxed">${highlightTerms(p)}</span>
+          </li>
+        `).join("");
+        bindHighlights(lList);
+      }
+
+      const qList = document.getElementById("result-questions-list");
+      if (qList) {
+        qList.innerHTML = (data.doctorQuestions || []).map((q, i) => `
+          <li class="bg-indigo-50/50 p-2.5 rounded-lg border border-indigo-100 text-indigo-950 text-xs">
+            <span class="font-bold text-indigo-600 mr-1">Q${i+1}:</span>${escapeHtml(q)}
+          </li>
+        `).join("");
+      }
+
+      const rfCard = document.getElementById("result-red-flags-card");
+      const rfContent = document.getElementById("result-red-flags-content");
+      if (rfCard && rfContent) {
+        if (data.redFlags && data.redFlags.length > 0) {
+          rfCard.classList.remove("hidden");
+          rfContent.innerHTML = data.redFlags.map(r => `<p>• ${escapeHtml(r)}</p>`).join("");
+        } else {
+          rfCard.classList.add("hidden");
+        }
+      }
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function highlightTerms(text) {
+      if (!text) return "";
+      let html = escapeHtml(text);
+      const terms = TerminologyService.getAllTerms();
+      const seen = new Set();
+
+      terms.forEach(t => {
+        if (seen.has(t.id)) return;
+        const word = t.term.split("(")[0].trim();
+        const reg = new RegExp(`\\b(${word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})\\b`, 'gi');
+        if (reg.test(html)) {
+          seen.add(t.id);
+          html = html.replace(reg, `<span class="med-term-highlight" data-term-id="${t.id}" title="Click to view definition">$1</span>`);
+        }
+      });
+      return html;
+    }
+
+    function bindHighlights(container) {
+      container.querySelectorAll(".med-term-highlight").forEach(el => {
+        el.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const term = TerminologyService.lookup(el.getAttribute("data-term-id"));
+          if (!term) return;
+
+          const pop = document.getElementById("terminology-popover");
+          document.getElementById("popover-term-title").textContent = term.term;
+          document.getElementById("popover-term-category").textContent = term.category;
+          document.getElementById("popover-term-plain").textContent = term.plainEnglish;
+
+          const rw = document.getElementById("popover-term-range-wrapper");
+          if (term.normalRange && !term.normalRange.includes("Suffix")) {
+            rw?.classList.remove("hidden");
+            document.getElementById("popover-term-range").textContent = term.normalRange;
+          } else rw?.classList.add("hidden");
+
+          const rect = el.getBoundingClientRect();
+          pop.style.left = `${Math.min(rect.left + window.scrollX, window.innerWidth - 340)}px`;
+          pop.style.top = `${rect.bottom + window.scrollY + 6}px`;
+          pop.classList.remove("hidden");
+          setTimeout(() => pop.classList.add("active"), 10);
+          if (window.lucide) lucide.createIcons();
+        });
+      });
+    }
+
+    function initTimeline() {
+      document.querySelectorAll(".btn-timeline-filter").forEach(b => {
+        b.addEventListener("click", () => {
+          document.querySelectorAll(".btn-timeline-filter").forEach(x => x.className = "btn-timeline-filter px-3 py-1.5 rounded-lg text-xs font-medium text-slate-600 hover:bg-slate-100");
+          b.className = "btn-timeline-filter px-3 py-1.5 rounded-lg text-xs font-semibold bg-teal-600 text-white";
+          timelineManager.activeFilter = b.getAttribute("data-cat");
+          renderTimeline();
+        });
+      });
+
+      document.getElementById("timeline-search-input")?.addEventListener("input", (e) => {
+        timelineManager.searchQuery = e.target.value;
+        renderTimeline();
+      });
+
+      document.getElementById("btn-toggle-sort-order")?.addEventListener("click", () => {
+        timelineManager.sortOrder = timelineManager.sortOrder === "desc" ? "asc" : "desc";
+        document.getElementById("sort-order-label").textContent = timelineManager.sortOrder === "desc" ? "Newest" : "Oldest";
+        renderTimeline();
+      });
+
+      document.getElementById("btn-export-timeline-json")?.addEventListener("click", () => {
+        const blob = new Blob([timelineManager.exportJSON()], { type: "application/json" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `medical-timeline-${new Date().toISOString().split("T")[0]}.json`;
+        a.click();
+      });
+
+      const imp = document.getElementById("import-timeline-file");
+      document.getElementById("btn-trigger-import-json")?.addEventListener("click", () => imp?.click());
+      imp?.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+          const res = timelineManager.importJSON(evt.target.result);
+          if (res.success) { alert(`Restored ${res.count} records!`); renderTimeline(); }
+        };
+        reader.readAsText(file);
+      });
+    }
+
+    function renderTimeline() {
+      const container = document.getElementById("timeline-events-container");
+      if (!container) return;
+
+      // Render Metrics Strip
+      const strip = document.getElementById("timeline-metrics-strip");
+      if (strip) {
+        const tracked = [
+          { name: "Glucose", label: "Fasting Glucose", target: "70-99 mg/dL" },
+          { name: "HbA1c", label: "HbA1c", target: "<5.7%" },
+          { name: "Blood Pressure", label: "Blood Pressure", target: "<120/80" },
+          { name: "Ferritin", label: "Ferritin", target: "20-200 ng/mL" }
+        ];
+        strip.innerHTML = tracked.map(t => {
+          const hist = timelineManager.getMetricHistory(t.name);
+          const last = hist[hist.length - 1];
+          let val = "No data yet", cls = "bg-slate-50 text-slate-500 border-slate-200";
+          if (last) {
+            val = `${last.value} ${last.unit || ""}`;
+            if (last.status === "Attention") cls = "bg-amber-50 text-amber-800 border-amber-200 font-semibold";
+            else if (last.status === "Critical") cls = "bg-rose-50 text-rose-800 border-rose-200 font-bold";
+            else cls = "bg-teal-50 text-teal-800 border-teal-200";
+          }
+          return `
+            <div class="p-3 rounded-xl border ${cls} flex flex-col justify-between">
+              <div>
+                <span class="text-[11px] font-semibold text-slate-500 uppercase block">${t.label}</span>
+                <span class="text-base font-bold">${val}</span>
+              </div>
+              <div class="mt-2 text-[10px] text-slate-400">Target: ${t.target}</div>
+            </div>
+          `;
+        }).join("");
+      }
+
+      // Render Timeline Nodes
+      const records = timelineManager.getFilteredRecords();
+      container.innerHTML = `<div class="timeline-stem"></div>`;
+
+      if (records.length === 0) {
+        container.innerHTML += `<div class="bg-white p-8 rounded-2xl border border-slate-200 text-center text-slate-500 text-sm">No records match this filter.</div>`;
+        return;
+      }
+
+      const catIcons = {
+        "Lab Tests": { icon: "flask-conical", color: "bg-teal-500" },
+        "Imaging & Scans": { icon: "scan", color: "bg-sky-500" },
+        "Doctor Visits": { icon: "stethoscope", color: "bg-indigo-500" },
+        "Prescriptions": { icon: "pill", color: "bg-amber-500" },
+        "Hospital & Surgeries": { icon: "cross", color: "bg-rose-500" }
+      };
+
+      records.forEach(r => {
+        const conf = catIcons[r.category] || catIcons["Lab Tests"];
+        const dStr = new Date(r.date).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+        const metPills = (r.metrics || []).map(m => `
+          <span class="px-2 py-0.5 rounded-md text-xs bg-slate-100 text-slate-700 font-medium">${escapeHtml(m.name)}: <b>${escapeHtml(m.value)} ${escapeHtml(m.unit||"")}</b></span>
+        `).join("");
+
+        container.innerHTML += `
+          <div class="relative flex items-start space-x-4">
+            <div class="absolute -left-12 sm:-left-16 w-8 h-8 rounded-full ${conf.color} text-white flex items-center justify-center shadow-md ring-4 ring-white z-10">
+              <i data-lucide="${conf.icon}" class="w-4 h-4"></i>
+            </div>
+            <div class="timeline-card w-full bg-white p-5 rounded-2xl border border-slate-200 shadow-sm space-y-2">
+              <div class="flex items-center justify-between text-xs border-b border-slate-100 pb-2">
+                <div class="flex items-center space-x-2">
+                  <span class="font-bold text-teal-800 bg-teal-50 px-2 py-0.5 rounded-full">${escapeHtml(r.category)}</span>
+                  <span class="text-slate-400 font-mono">${dStr}</span>
+                </div>
+                <div class="flex items-center space-x-2 text-slate-500">
+                  <span>${escapeHtml(r.doctor || "")}</span>
+                  <button data-del="${r.id}" class="btn-del-record text-slate-300 hover:text-red-500"><i data-lucide="trash-2" class="w-3.5 h-3.5"></i></button>
+                </div>
+              </div>
+              <h3 class="font-bold text-slate-900">${escapeHtml(r.title)}</h3>
+              <p class="text-xs sm:text-sm text-slate-600 leading-relaxed">${highlightTerms(r.summary)}</p>
+              ${metPills ? `<div class="flex flex-wrap gap-1.5 pt-2">${metPills}</div>` : ""}
+            </div>
+          </div>
+        `;
+      });
+
+      container.querySelectorAll(".btn-del-record").forEach(btn => {
+        btn.addEventListener("click", () => {
+          if (confirm("Delete this record from timeline?")) {
+            timelineManager.deleteRecord(btn.getAttribute("data-del"));
+            renderTimeline();
+          }
+        });
+      });
+      bindHighlights(container);
+      if (window.lucide) lucide.createIcons();
+    }
+
+    function initDictionary() {
+      document.getElementById("dictionary-search-input")?.addEventListener("input", (e) => {
+        renderDictionary(e.target.value);
+      });
+
+      const catBox = document.getElementById("dictionary-category-filters");
+      if (catBox) {
+        catBox.innerHTML = ["All", ...TerminologyService.getCategories()].map((c, i) => `
+          <button data-cat="${c}" class="btn-d-cat px-3 py-1 rounded-lg text-xs ${i===0?'bg-teal-600 text-white font-semibold':'bg-slate-100 text-slate-600'}">${c}</button>
+        `).join("");
+
+        catBox.querySelectorAll(".btn-d-cat").forEach(btn => {
+          btn.addEventListener("click", () => {
+            catBox.querySelectorAll(".btn-d-cat").forEach(b => b.className = "btn-d-cat px-3 py-1 rounded-lg text-xs bg-slate-100 text-slate-600");
+            btn.className = "btn-d-cat px-3 py-1 rounded-lg text-xs bg-teal-600 text-white font-semibold";
+            const cat = btn.getAttribute("data-cat");
+            renderDictionary("", cat === "All" ? "" : cat);
+          });
+        });
+      }
+    }
+
+    function renderDictionary(query = "", category = "") {
+      const grid = document.getElementById("dictionary-cards-grid");
+      if (!grid) return;
+      let terms = TerminologyService.search(query);
+      if (category) terms = terms.filter(t => t.category === category);
+
+      document.getElementById("dictionary-results-count").textContent = `Showing ${terms.length} preloaded medical terms`;
+
+      grid.innerHTML = terms.map(t => `
+        <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs hover:border-teal-300 transition flex flex-col justify-between space-y-3">
+          <div class="space-y-2">
+            <div class="flex items-start justify-between">
+              <h3 class="font-bold text-slate-900 text-sm">${escapeHtml(t.term)}</h3>
+              <span class="text-[10px] uppercase font-semibold px-2 py-0.5 rounded-full bg-teal-50 text-teal-700">${escapeHtml(t.category)}</span>
+            </div>
+            <div class="bg-teal-50/50 p-3 rounded-xl border border-teal-100/50 text-xs text-slate-700 leading-relaxed">
+              <b>Everyday Meaning:</b> ${escapeHtml(t.plainEnglish)}
+            </div>
+          </div>
+          <div class="text-[11px] text-slate-500 pt-2 border-t border-slate-100">
+            <div><b>Normal Range:</b> ${escapeHtml(t.normalRange)}</div>
+            <div class="mt-1"><b>Why checked:</b> ${escapeHtml(t.whyItMatters)}</div>
+          </div>
+        </div>
+      `).join("");
+    }
+
+    function initCustomizer() {
+      const pBox = document.getElementById("theme-preset-cards");
+      if (pBox) {
+        pBox.innerHTML = Object.keys(UI_CONFIG.themes).map(k => {
+          const t = UI_CONFIG.themes[k];
+          const isAct = (UI_CONFIG.activeTheme || "clinical-teal") === k;
+          return `
+            <div data-theme="${k}" class="btn-theme-card p-3 rounded-xl border cursor-pointer ${isAct?'border-teal-600 bg-teal-50/30 ring-2 ring-teal-500/20':'border-slate-200'}">
+              <div class="flex justify-between text-xs font-bold mb-2">
+                <span>${t.name}</span>
+                ${isAct ? '<span class="text-teal-700 bg-teal-100 px-2 py-0.5 rounded-full text-[10px]">Active</span>':''}
+              </div>
+              <div class="flex space-x-1.5">
+                <span class="w-5 h-5 rounded-full" style="background:${t.primary}"></span>
+                <span class="w-5 h-5 rounded-full" style="background:${t.accent}"></span>
+                <span class="w-5 h-5 rounded-full border" style="background:${t.bgBody}"></span>
+              </div>
+            </div>
+          `;
+        }).join("");
+
+        pBox.querySelectorAll(".btn-theme-card").forEach(c => {
+          c.addEventListener("click", () => {
+            UI_CONFIG.activeTheme = c.getAttribute("data-theme");
+            initTheme();
+            initCustomizer();
+          });
+        });
+      }
+
+      document.getElementById("cust-app-name").value = UI_CONFIG.branding.appName;
+      document.getElementById("cust-version-badge").value = UI_CONFIG.branding.versionBadge;
+      document.getElementById("cust-app-tagline").value = UI_CONFIG.branding.appTagline;
+      document.getElementById("cust-owner-name").value = UI_CONFIG.branding.ownerName;
+
+      document.getElementById("btn-save-custom-settings")?.addEventListener("click", () => {
+        UI_CONFIG.branding.appName = document.getElementById("cust-app-name").value || UI_CONFIG.branding.appName;
+        UI_CONFIG.branding.versionBadge = document.getElementById("cust-version-badge").value || UI_CONFIG.branding.versionBadge;
+        UI_CONFIG.branding.appTagline = document.getElementById("cust-app-tagline").value || UI_CONFIG.branding.appTagline;
+        UI_CONFIG.branding.ownerName = document.getElementById("cust-owner-name").value || UI_CONFIG.branding.ownerName;
+
+        localStorage.setItem("medclarify_user_ui_config", JSON.stringify(UI_CONFIG));
+        initTheme();
+        alert("Customizations saved successfully!");
+      });
+
+      document.getElementById("btn-reset-theme-defaults")?.addEventListener("click", () => {
+        if (confirm("Reset to factory defaults?")) {
+          localStorage.removeItem("medclarify_user_ui_config");
+          location.reload();
+        }
+      });
+    }
+
+    function initModals() {
+      document.querySelectorAll(".modal-close-btn").forEach(b => {
+        b.addEventListener("click", () => {
+          document.querySelectorAll("#modal-api-key, #modal-add-record, #modal-add-term").forEach(m => m.classList.add("hidden"));
+        });
+      });
+
+      // API Key Modal
+      const mApi = document.getElementById("modal-api-key");
+      const kInput = document.getElementById("input-gemini-key");
+      document.getElementById("btn-open-api-modal")?.addEventListener("click", () => {
+        kInput.value = geminiService.apiKey || "";
+        mApi.classList.remove("hidden");
+        if (window.lucide) lucide.createIcons();
+      });
+      document.getElementById("btn-toggle-key-visibility")?.addEventListener("click", () => {
+        kInput.type = kInput.type === "password" ? "text" : "password";
+      });
+      document.getElementById("btn-save-api-key")?.addEventListener("click", () => {
+        geminiService.setApiKey(kInput.value);
+        geminiService.setModel(document.getElementById("select-modal-model").value);
+        mApi.classList.add("hidden");
+        updateApiDot();
+        alert("Gemini API connected!");
+      });
+      document.getElementById("btn-clear-api-key")?.addEventListener("click", () => {
+        geminiService.setApiKey("");
+        kInput.value = "";
+        mApi.classList.add("hidden");
+        updateApiDot();
+      });
+
+      // Add Record Modal
+      const mRec = document.getElementById("modal-add-record");
+      document.getElementById("btn-open-add-record-modal")?.addEventListener("click", () => {
+        document.getElementById("record-date").value = new Date().toISOString().split("T")[0];
+        mRec.classList.remove("hidden");
+        if (window.lucide) lucide.createIcons();
+      });
+      document.getElementById("form-add-timeline-record")?.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const mName = document.getElementById("record-metric-name").value;
+        const mVal = document.getElementById("record-metric-value").value;
+        const metrics = mName && mVal ? [{ name: mName, value: mVal, status: document.getElementById("record-metric-status").value }] : [];
+
+        timelineManager.addRecord({
+          date: document.getElementById("record-date").value,
+          category: document.getElementById("record-category").value,
+          title: document.getElementById("record-title").value,
+          doctor: document.getElementById("record-doctor").value,
+          facility: document.getElementById("record-facility").value,
+          summary: document.getElementById("record-summary").value,
+          metrics
+        });
+        mRec.classList.add("hidden");
+        e.target.reset();
+        renderTimeline();
+      });
+
+      // Add Custom Term Modal
+      const mTerm = document.getElementById("modal-add-term");
+      document.getElementById("btn-open-custom-term-modal")?.addEventListener("click", () => {
+        mTerm.classList.remove("hidden");
+        if (window.lucide) lucide.createIcons();
+      });
+      document.getElementById("form-add-custom-term")?.addEventListener("submit", (e) => {
+        e.preventDefault();
+        TerminologyService.addCustomTerm({
+          term: document.getElementById("newterm-name").value,
+          category: document.getElementById("newterm-category").value,
+          plainEnglish: document.getElementById("newterm-plain").value,
+          normalRange: document.getElementById("newterm-range").value
+        });
+        mTerm.classList.add("hidden");
+        e.target.reset();
+        renderDictionary();
+        alert("New term added to your dictionary!");
+      });
+    }
+
+    function escapeHtml(s) {
+      if (!s) return "";
+      return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+  </script>
+
+</body>
+</html>

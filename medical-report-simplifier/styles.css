@@ -1,0 +1,173 @@
+/**
+ * ==============================================================================
+ *  MEDCLARIFY - CUSTOM STYLESHEET
+ * ==============================================================================
+ *  Provides modern UI styling, responsive timeline tree, medical terminology
+ *  tooltips, print formatting, and dynamic theme CSS variables.
+ * ==============================================================================
+ */
+
+/* --------------------------------------------------------------------------
+   1. CSS VARIABLES (Dynamically populated from theme-config.js)
+   -------------------------------------------------------------------------- */
+:root {
+  --primary: #0d9488;
+  --primary-hover: #0f766e;
+  --primary-light: #ccfbf1;
+  --accent: #0284c7;
+  --bg-body: #f8fafc;
+  --bg-card: #ffffff;
+  --text-main: #0f172a;
+  --text-muted: #64748b;
+  --border-color: #e2e8f0;
+  --border-radius: 12px;
+}
+
+body {
+  background-color: var(--bg-body);
+  color: var(--text-main);
+  font-family: var(--font-family, 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  transition: background-color 0.25s ease, color 0.25s ease;
+}
+
+/* --------------------------------------------------------------------------
+   2. CUSTOM SCROLLBAR
+   -------------------------------------------------------------------------- */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+/* --------------------------------------------------------------------------
+   3. MEDICAL TERMINOLOGY TOOLTIP & HIGHLIGHTS
+   -------------------------------------------------------------------------- */
+.med-term-highlight {
+  cursor: pointer;
+  background-color: rgba(13, 148, 136, 0.12);
+  color: var(--primary);
+  font-weight: 600;
+  padding: 1px 4px;
+  border-radius: 4px;
+  border-bottom: 2px dotted var(--primary);
+  transition: all 0.2s ease-in-out;
+  position: relative;
+  display: inline-block;
+}
+
+.med-term-highlight:hover {
+  background-color: var(--primary);
+  color: #ffffff;
+  border-bottom-color: transparent;
+  transform: translateY(-1px);
+}
+
+/* Popover Tooltip Box */
+.med-tooltip-box {
+  position: absolute;
+  z-index: 1000;
+  width: 320px;
+  max-width: 90vw;
+  background: #ffffff;
+  color: #0f172a;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  box-shadow: 0 14px 28px rgba(0, 0, 0, 0.12), 0 10px 10px rgba(0, 0, 0, 0.08);
+  padding: 14px 16px;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  pointer-events: auto;
+  opacity: 0;
+  transform: translateY(6px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.med-tooltip-box.active {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* --------------------------------------------------------------------------
+   4. MEDICAL TIMELINE STYLING
+   -------------------------------------------------------------------------- */
+.timeline-stem {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 28px;
+  width: 3px;
+  background: linear-gradient(180deg, var(--primary) 0%, rgba(13, 148, 136, 0.15) 100%);
+}
+
+.timeline-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+}
+
+.timeline-card:hover {
+  transform: translateX(4px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+}
+
+/* Status Badges */
+.status-badge-attention {
+  background-color: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.status-badge-critical {
+  background-color: #fee2e2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  animation: pulse-border 2s infinite;
+}
+
+.status-badge-normal {
+  background-color: #d1fae5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+@keyframes pulse-border {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+  70% { box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+/* --------------------------------------------------------------------------
+   5. PRINT & PDF OPTIMIZATION
+   -------------------------------------------------------------------------- */
+@media print {
+  /* Hide navigation, forms, sidebars, buttons */
+  header, nav, #btn-export-timeline, #btn-add-record, #view-customizer, #view-dictionary,
+  .no-print, button, input, textarea, select {
+    display: none !important;
+  }
+
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+    font-size: 11pt;
+  }
+
+  .timeline-stem {
+    background: #64748b !important;
+  }
+
+  .timeline-card {
+    box-shadow: none !important;
+    border: 1px solid #cbd5e1 !important;
+    page-break-inside: avoid;
+    margin-bottom: 16px;
+  }
+}
